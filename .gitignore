@@ -1,3 +1,10 @@
+# Certs
+*.pem
+*.key
+*.csr
+*.crt
+*.srl
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
