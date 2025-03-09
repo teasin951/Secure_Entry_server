@@ -12,4 +12,32 @@ services:
       - ./mosquitto/logs:/mosquitto/logs
       - ./mosquitto/certs:/mosquitto/certs
     restart: unless-stopped
+    
+  db:
+    image: postgres
+    container_name: postgres
+    restart: always
+    shm_size: 128mb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - local_pgdata:/var/lib/postgresql/data
+      
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@domain.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
 
+volumes:
+  local_pgdata:
+  pgadmin-data:

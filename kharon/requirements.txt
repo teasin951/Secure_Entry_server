@@ -1,0 +1,4 @@
+psycopg2
+cbor2
+paho-mqtt
+asyncio
