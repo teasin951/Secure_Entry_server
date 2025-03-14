@@ -35,3 +35,4 @@ if ! openssl req -out "$CLIENT".csr -key "$CLIENT".key -new ||       # Generate 
 	exit 1
 fi
 
+rm $CLIENT.csr  # Remove the request

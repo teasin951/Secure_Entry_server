@@ -1,0 +1,5 @@
+--cafile ../mosquitto/certs/ca.crt
+--cert ../mosquitto/certs/clients/test.crt
+--key ../mosquitto/certs/clients/test.key
+-u admin
+-h <broker url>

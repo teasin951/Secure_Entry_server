@@ -35,3 +35,4 @@ if ! openssl genrsa -out "$DIR"/server.key 2048 ||                    # Generate
 	exit 1
 fi
 
+rm server.csr  # Remove the request

@@ -26,9 +26,10 @@ def get_manufacturer_name():
 
 def create_cardID( manufacturer ):
     # Get manufacturer name in 16-byte ASCII format
-    manufacturer = bytes(manufacturer, 'ascii')
+    manu = int("0", 2).to_bytes(16)
+    manufac = bytes(manufacturer, 'ascii') + manu[len(manufacturer) + 1:]
 
-    # No other are currently supported
+    # No other is currently supported
     mutual_auth = int("1100101000000010", 2).to_bytes(2)
     communication_enc = bytes(0x02)
 
@@ -39,7 +40,7 @@ def create_cardID( manufacturer ):
     # Key version is not currently checked, defaults to 1
     key_version = bytes(1)
 
-    return manufacturer + mutual_auth + communication_enc + customer_id + key_version
+    return manufac + mutual_auth + communication_enc + customer_id + key_version
     
 
 if __name__ == "__main__":

@@ -5,6 +5,10 @@
 *.crt
 *.srl
 
+# Setup
+dynamic-security.json
+*.cbor
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
