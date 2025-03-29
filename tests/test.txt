@@ -1,0 +1,5 @@
+Listening to registrator logs...
+TestClient: [0;32mI (328064) MQTT: MQTT connected[0m
+
+TestClient: [0;32mI (328134) Controller: Configuration has been updated[0m
+

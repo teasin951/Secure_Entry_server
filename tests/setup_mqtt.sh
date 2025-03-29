@@ -54,7 +54,7 @@ mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SER
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "registrator/$CLIENT/command" allow 5  || exit 3
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribeLiteral "registrator/$CLIENT/UID" allow 5  || exit 3
 
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addClientRole $CLIENT $SERVER_ROLE 5  || exit 5
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addClientRole $SERVER $SERVER_ROLE 5  || exit 5
 
 
 
