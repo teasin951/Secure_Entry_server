@@ -1,6 +1,5 @@
 import asyncio
 import psycopg2
-from tables import table_factory as tf
 
 
 async def handle_notify( conn ):
@@ -13,7 +12,8 @@ async def handle_notify( conn ):
     while 1:
         conn.poll()
         for notify in conn.notifies:
-            tf.TableFactory.create_table( conn, notify.payload )
+            # TODO
+            pass
         conn.notifies.clear()
         await asyncio.sleep(0.5)
 

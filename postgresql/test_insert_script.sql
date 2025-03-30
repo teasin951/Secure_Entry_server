@@ -5,29 +5,140 @@ VALUES('Test', '\x0000', '\x00', 1);
 INSERT INTO pacs_object(version_major, version_minor, site_code, reissue_code, customer_specific)
 VALUES(1, 1, '\x00', 0, '\x00');
 
-INSERT INTO config(appmok, appvok, ocpsk, name, id_card_identifier, id_pacs)
+INSERT INTO config(appmok, appvok, ocpsk, name, id_card_identifier, id_pacs_object)
 VALUES('\x00112233445566778899AABBCCDDEEFF', '\x00112233445566778899AABBCCDDEEFF', '\x00112233445566778899AABBCCDDEEFF', 'Test config', 1, 1);
 
 INSERT INTO zone(name)
-VALUES('Test zone');
+VALUES('TestZone');
 
--- Create a registrator
-INSERT INTO reader(id_config, id_zone, name, mqtt_username, mqtt_password, registrator, max_time_rules)
-VALUES(1, 1, 'TestReader', 'TestClient', 'test', TRUE, 2);
+-------------------------------------------------------------------------------------------
 
--- Create a reader
-INSERT INTO reader(id_config, id_zone, name, mqtt_username, mqtt_password, registrator, max_time_rules)
-VALUES(1, 1, 'TestReader2', 'TestClient2', 'test', FALSE, 2);
+-- Create a device
+INSERT INTO device(id_config, name, mqtt_username, mqtt_password)
+VALUES(1, 'TestReader', 'TestClient', 'test');
 
--- Create a new card entry
-INSERT INTO card(name, id_reader)
-VALUES('TestCard', 1);
+-- Make it a reader
+INSERT INTO reader(id_device, id_zone, max_time_rules)
+VALUES(1, 1, 2);
+
+-- Try to make it a registrator as well
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO registrator(id_device) VALUES(1);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'One device must not be allowed to be both types';
+    END IF;
+
+    ROLLBACK;
+END $$;
+
+
+-- Create a second device
+INSERT INTO device(id_config, name, mqtt_username, mqtt_password)
+VALUES(1, 'TestReader2', 'TestClient2', 'test');
+
+-- Make it a registrator
+INSERT INTO registrator(id_device) VALUES(2);
+
+-- Try to make it a reader as well
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO reader(id_device, id_zone, max_time_rules)
+        VALUES(2, 1, 2);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'One device must not be allowed to be both types';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-- Try to make reader register a card
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO card(name, id_device) VALUES('FaultyCard', 1);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'Card must not be allowed to be registered by a reader';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-----------------------------------------------------------------------------------------------------------
+
+-- Create new cards in bulk
+INSERT INTO card(name, id_device)
+VALUES
+	('TestCard',  2),
+	('TestCard2', 2),
+	('TestCard3', 2);
+
+-- Try to add card without UID to zone
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO card_zone(id_zone, id_card) VALUES(1, 2);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'Card must not be allowed to be added to zone without UID';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-- TODO test card deletion
 
 -- Simulate registrator filling UID
 UPDATE card
 SET uid = '\x11223344556677'
-WHERE id_card = 1;
+WHERE id_card = 2;
 
 -- Add card to zone
 INSERT INTO card_zone
-VALUES(1, 1);
+VALUES(2, 1);
+
+-----------------------------------------------------------------------------------------------------------
+
+-- Create two timerules for zone 1
+INSERT INTO time_rule(id_zone, name)
+VALUES
+	(1, 'TestZone1'),
+	(1, 'TestZone2');
+
+-- Create two time_constraints for rule 1 and three for rule 2
+INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
+VALUES
+	(1, 1, '06:20', '8:40', '\x7C'),
+	(1, 1, '10:00', '16:15', '\x01'),
+	(2, 1, '06:20', '8:40', '\x7C'),
+	(2, 1, '10:00', '16:15', '\x01'),
+	(2, 1, '10:00', '16:15', '\x02');
