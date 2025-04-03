@@ -4,18 +4,12 @@
 
     - Do nothing, devices will use it when needed
 */
-CREATE OR REPLACE FUNCTION pacs_object_on_insert()
-RETURNS TRIGGER AS $$
-BEGIN
+-- No function needed --
 
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
 
 
 /*
-    Handle update on pacs_object
+    Handle update on pacs_object (FOR EACH ROW)
 
     - Update config (if there are device using it)
 */
@@ -23,8 +17,11 @@ CREATE OR REPLACE FUNCTION pacs_object_on_update()
 RETURNS TRIGGER AS $$
 BEGIN
 
+    PERFORM push_new_config_to_devices( 
+        (SELECT id_config FROM config WHERE id_pacs_object = NEW.id_pacs_object) 
+    );
 
-    RETURN NULL;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,11 +31,4 @@ $$ LANGUAGE plpgsql;
     
     - Do nothing, cannot be deleted while there are devices using it
 */
-CREATE OR REPLACE FUNCTION pacs_object_on_delete()
-RETURNS TRIGGER AS $$
-BEGIN
-
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --

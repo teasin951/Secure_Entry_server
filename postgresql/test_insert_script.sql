@@ -6,7 +6,7 @@ INSERT INTO pacs_object(version_major, version_minor, site_code, reissue_code, c
 VALUES(1, 1, '\x00', 0, '\x00');
 
 INSERT INTO config(appmok, appvok, ocpsk, name, id_card_identifier, id_pacs_object)
-VALUES('\x00112233445566778899AABBCCDDEEFF', '\x00112233445566778899AABBCCDDEEFF', '\x00112233445566778899AABBCCDDEEFF', 'Test config', 1, 1);
+VALUES('\x11111111111111111111111111111111', '\x22222222222222222222222222222222', '\x33333333333333333333333333333333', 'Test config', 1, 1);
 
 INSERT INTO zone(name)
 VALUES('TestZone');
@@ -89,6 +89,66 @@ END $$;
 
 -----------------------------------------------------------------------------------------------------------
 
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Update UID of a card
+INSERT INTO command(command, id_registrator, id_card)
+VALUES ('personalize', 2, 3);
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Send depersonalize
+INSERT INTO command(command, id_registrator)
+VALUES ('depersonalize', 2);
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Send delete_last
+INSERT INTO command(command, id_registrator)
+VALUES ('delete_app', 2);
+
+-- Try to issue command to a busy registrator
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES ('personalize', 2, 3);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'You should not be able to issue command to already busy registrators';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-----------------------------------------------------------------------------------------------------------
+
+-- Update card_identifier
+UPDATE card_identifier
+SET manufacturer = 'Changed';
+
+-- Update pacso
+UPDATE pacs_object
+SET version_minor = 1;
+
+-- Update config
+UPDATE config
+SET name = 'ChangedConfig';
+
+-----------------------------------------------------------------------------------------------------------
+
 -- Create new cards in bulk
 INSERT INTO card(name, id_device)
 VALUES
@@ -158,52 +218,6 @@ BEGIN
 
     ROLLBACK; 
 END $$;
-
------------------------------------------------------------------------------------------------------------
-
--- Try to issue command to a busy registrator
-DO $$
-DECLARE
-    success BOOLEAN;
-BEGIN
-    BEGIN
-        INSERT INTO command(command, id_registrator, id_card)
-        VALUES ('personalize', 2, 3);
-        success := TRUE;
-    EXCEPTION WHEN OTHERS THEN
-        success := FALSE;
-    END;
-
-    IF success THEN
-        RAISE WARNING 'You should not be able to issue command to already busy registrators';
-    END IF;
-
-    ROLLBACK; 
-END $$;
-
--- Clear task queue
-DELETE FROM task_queue WHERE id_registrator = 2;
-
--- Update UID of a card
-INSERT INTO command(command, id_registrator, id_card)
-VALUES ('personalize', 2, 3);
-
--- Clear task queue
-DELETE FROM task_queue WHERE id_registrator = 2;
-
--- Send depersonalize
-INSERT INTO command(command, id_registrator)
-VALUES ('depersonalize', 2);
-
--- Clear task queue
-DELETE FROM task_queue WHERE id_registrator = 2;
-
--- Send delete_last
-INSERT INTO command(command, id_registrator)
-VALUES ('delete_app', 2);
-
--- Clear task queue
-DELETE FROM task_queue WHERE id_registrator = 2;
 
 -----------------------------------------------------------------------------------------------------------
 

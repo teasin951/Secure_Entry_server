@@ -172,7 +172,7 @@ CREATE TABLE command(
 
 -- Tasks for the python MQTT client to take care of
 CREATE TABLE task_queue (
-    id_task SERIAL PRIMARY KEY,
+    id_task BIGSERIAL PRIMARY KEY,
     task_type TEXT NOT NULL,
     payload JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),

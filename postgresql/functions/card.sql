@@ -61,10 +61,4 @@ $$ LANGUAGE plpgsql;
 
     - Do nothing, the delete will cascade and relevant actions will be handled elsewhere
 */
-CREATE OR REPLACE FUNCTION card_on_delete()
-RETURNS TRIGGER AS $$
-BEGIN
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --

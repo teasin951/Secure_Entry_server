@@ -1,3 +1,65 @@
+
+/*
+    Update configurations for devices using specified config
+*/
+CREATE OR REPLACE FUNCTION push_new_config_to_devices(config_id INTEGER)
+RETURNS INTEGER AS $$
+DECLARE
+    readers_array JSONB;
+    registrators_array JSONB;
+BEGIN
+
+    -- Make array with reader topics and respective zones to update
+    SELECT json_agg(json_build_object(
+        'topic', 'reader/' || mqtt_username || '/setup',
+        'zone', (SELECT id_zone FROM reader WHERE id_device IN (
+            SELECT id_device FROM device WHERE id_config = config_id
+        )))
+        ) INTO readers_array 
+    FROM device
+    WHERE id_config = config_id AND id_device IN (
+        SELECT id_device FROM reader 
+    ); 
+
+    -- Make array with registrators and their APPMOK
+    SELECT json_agg(json_build_object(
+        'topic', 'registrator/' || mqtt_username || '/setup',
+        'appmok', (SELECT appmok::text FROM config WHERE id_config = config_id))
+        ) INTO registrators_array 
+    FROM device
+    WHERE id_config = config_id AND id_device IN (
+        SELECT id_device FROM registrator
+    ); 
+
+    -- Put to queue
+    INSERT INTO task_queue(task_type, payload)
+    VALUES(
+        'config',
+        
+        json_build_object(
+            'devices', json_build_object(
+                'readers', readers_array,
+                'registrators', registrators_array
+            ),
+
+            'config', json_build_object(
+                'APPVOK', (SELECT appvok FROM config WHERE id_config = config_id),
+                'OCPSK', (SELECT ocpsk FROM config WHERE id_config = config_id),
+                'CardID', (SELECT row_to_json(card_identifier) FROM card_identifier WHERE id_card_identifier = (
+                    SELECT id_card_identifier FROM config WHERE id_config = config_id
+                )),
+                'PACSO', (SELECT row_to_json(pacs_object) FROM pacs_object WHERE id_pacs_object = (
+                    SELECT id_pacs_object FROM config WHERE id_config = config_id
+                ))
+            )
+        )
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
 \i functions/card_identifier.sql
 \i functions/card_time_rule.sql
 \i functions/card_zone.sql

@@ -25,7 +25,7 @@ mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec createRole $CLI
 
 # -- For reader -- #
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE publishClientSend "reader/logs" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE subscribeLiteral "reader/$CLIENT" allow 5  || exit 4
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE subscribeLiteral "reader/$CLIENT/setup" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE subscribeLiteral "whitelist/$ZONEID/full" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE subscribeLiteral "whitelist/$ZONEID/add" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $CLIENT_ROLE subscribeLiteral "whitelist/$ZONEID/remove" allow 5  || exit 4
@@ -44,7 +44,7 @@ mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec createClient $S
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec createRole $SERVER_ROLE  || exit 2
 
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribeLiteral "reader/logs" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "reader/$CLIENT" allow 5  || exit 4
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "reader/$CLIENT/setup" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/$ZONEID/full" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/$ZONEID/add" allow 5  || exit 4
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/$ZONEID/remove" allow 5  || exit 4
@@ -61,7 +61,7 @@ mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addClientRole $
 # -- Publish basic setup -- #
 python create_messages.py
 
-mosquitto_pub -u $CLIENT -P test -h "$HOST" -t "reader/$CLIENT" --cafile ../mosquitto/certs/ca.crt --cert ../mosquitto/certs/clients/test.crt --key ../mosquitto/certs/clients/test.key -f test_setup.cbor --id test_server  --retain --qos 2  || exit 6
+mosquitto_pub -u $CLIENT -P test -h "$HOST" -t "reader/$CLIENT/setup" --cafile ../mosquitto/certs/ca.crt --cert ../mosquitto/certs/clients/test.crt --key ../mosquitto/certs/clients/test.key -f test_setup.cbor --id test_server  --retain --qos 2  || exit 6
 mosquitto_pub -u $CLIENT -P test -h "$HOST" -t "whitelist/$ZONEID/full" --cafile ../mosquitto/certs/ca.crt --cert ../mosquitto/certs/clients/test.crt --key ../mosquitto/certs/clients/test.key -f test_whitelist.cbor --id test_server --retain --qos 2  || exit 6
 mosquitto_pub -u $CLIENT -P test -h "$HOST" -t "registrator/$CLIENT/setup" --cafile ../mosquitto/certs/ca.crt --cert ../mosquitto/certs/clients/test.crt --key ../mosquitto/certs/clients/test.key -f test_setup.cbor --id test_server --retain --qos 2  || exit 6
 

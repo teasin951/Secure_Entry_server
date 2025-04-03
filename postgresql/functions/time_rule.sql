@@ -7,7 +7,6 @@ CREATE OR REPLACE FUNCTION time_rule_on_insert()
 RETURNS TRIGGER AS $$
 BEGIN
 
-
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -21,7 +20,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION time_rule_on_update()
 RETURNS TRIGGER AS $$
 BEGIN
-
 
     RETURN NULL;
 END;
@@ -38,7 +36,6 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION time_rule_on_delete()
 RETURNS TRIGGER AS $$
 BEGIN
-
 
     RETURN NULL;
 END;

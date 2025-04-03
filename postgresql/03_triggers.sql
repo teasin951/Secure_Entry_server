@@ -30,23 +30,10 @@ FOR EACH ROW EXECUTE FUNCTION registrator_is_not_reader_check();
 /*
     Create triggers for each operation on card_identifier table
 */
-CREATE OR REPLACE TRIGGER card_identifier_operation_insert_trigger
-AFTER INSERT ON card_identifier
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION card_identifier_on_insert();
-
 CREATE OR REPLACE TRIGGER card_identifier_operation_update_trigger
 AFTER UPDATE ON card_identifier
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION card_identifier_on_update();
-
-CREATE OR REPLACE TRIGGER card_identifier_operation_delete_trigger
-AFTER DELETE ON card_identifier
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION card_identifier_on_delete();
 
 
 /*
@@ -108,33 +95,14 @@ REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
 FOR EACH STATEMENT
 EXECUTE FUNCTION card_on_update();
 
-CREATE OR REPLACE TRIGGER card_operation_delete_trigger
-AFTER DELETE ON card
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION card_on_delete();
-
 
 /*
     Create triggers for each operation on config table
 */
-CREATE OR REPLACE TRIGGER config_operation_insert_trigger
-AFTER INSERT ON config
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION config_on_insert();
-
 CREATE OR REPLACE TRIGGER config_operation_update_trigger
 AFTER UPDATE ON config
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION config_on_update();
-
-CREATE OR REPLACE TRIGGER config_operation_delete_trigger
-AFTER DELETE ON config
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION config_on_delete();
 
 
 /*
@@ -162,23 +130,10 @@ EXECUTE FUNCTION device_on_delete();
 /*
     Create triggers for each operation on pacs_object table
 */
-CREATE OR REPLACE TRIGGER pacs_object_operation_insert_trigger
-AFTER INSERT ON pacs_object
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION pacs_object_on_insert();
-
 CREATE OR REPLACE TRIGGER pacs_object_operation_update_trigger
 AFTER UPDATE ON pacs_object
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION pacs_object_on_update();
-
-CREATE OR REPLACE TRIGGER pacs_object_operation_delete_trigger
-AFTER DELETE ON pacs_object
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION pacs_object_on_delete();
 
 
 /*

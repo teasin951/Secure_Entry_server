@@ -4,25 +4,23 @@
 
     - Do nothing, devices will use it when needed
 */
-CREATE OR REPLACE FUNCTION card_identifier_on_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --
 
 
 /*
-    Handle update on card_identifier
+    Handle update on card_identifier (FOR EACH ROW)
 
-    - Update config (if there are device using it)
+    - Update config (if there are devices using it)
 */
 CREATE OR REPLACE FUNCTION card_identifier_on_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    
 
-    RETURN NULL;
+    PERFORM push_new_config_to_devices( 
+        (SELECT id_config FROM config WHERE id_card_identifier = NEW.id_card_identifier) 
+    );
+
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -32,9 +30,4 @@ $$ LANGUAGE plpgsql;
 
     - Do nothing, cannot be deleted while there are devices using it
 */
-CREATE OR REPLACE FUNCTION card_identifier_on_delete()
-RETURNS TRIGGER AS $$
-BEGIN
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --

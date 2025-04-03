@@ -4,18 +4,11 @@
 
     - Do nothing, devices will use it when needed
 */
-CREATE OR REPLACE FUNCTION config_on_insert()
-RETURNS TRIGGER AS $$
-BEGIN
-
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --
 
 
 /*
-    Handle update on config
+    Handle update on config (FOR EACH ROW)
 
     - Update config (if there are device using it)
 */
@@ -23,8 +16,9 @@ CREATE OR REPLACE FUNCTION config_on_update()
 RETURNS TRIGGER AS $$
 BEGIN
 
+    PERFORM push_new_config_to_devices(NEW.id_config);
 
-    RETURN NULL;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -34,11 +28,4 @@ $$ LANGUAGE plpgsql;
 
     - Do nothing, cannot be deleted while there are devices using it
 */
-CREATE OR REPLACE FUNCTION config_on_delete()
-RETURNS TRIGGER AS $$
-BEGIN
-
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
+-- No function needed --
