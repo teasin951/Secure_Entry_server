@@ -43,7 +43,7 @@ END $$;
 
 -- Create a second device
 INSERT INTO device(id_config, name, mqtt_username, mqtt_password)
-VALUES(1, 'TestReader2', 'TestClient2', 'test');
+VALUES(1, 'TestRegistrator', 'TestClient2', 'test');
 
 -- Make it a registrator
 INSERT INTO registrator(id_device) VALUES(2);
@@ -93,8 +93,9 @@ END $$;
 INSERT INTO card(name, id_device)
 VALUES
 	('TestCard',  2),
-	('TestCard2', 2),
-	('TestCard3', 2);
+	('TestCard2', NULL),
+	('TestCard3', NULL),
+	('TestCard4', NULL);
 
 -- Try to add card without UID to zone
 DO $$
@@ -115,16 +116,94 @@ BEGIN
     ROLLBACK; 
 END $$;
 
--- TODO test card deletion
+
+-- Delete card
+DELETE FROM card WHERE name = 'TestCard4';
+
+
+-- Mass delete
+INSERT INTO card(name) VALUES ('TT'), ('TT'), ('TT');
+DELETE FROM card WHERE name = 'TT';
+
 
 -- Simulate registrator filling UID
 UPDATE card
 SET uid = '\x11223344556677'
-WHERE id_card = 2;
+WHERE id_card = 3;
 
 -- Add card to zone
 INSERT INTO card_zone
-VALUES(2, 1);
+VALUES(3, 1);
+
+
+-- Try to add cards in bulk with registrators
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO card(name, id_device)
+        VALUES
+            ('TestCrd',  2),
+            ('TestCrd2', 2),
+            ('TestCrd3', 2);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'Letting multiple cards get registered at once must not be allowed';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-----------------------------------------------------------------------------------------------------------
+
+-- Try to issue command to a busy registrator
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES ('personalize', 2, 3);
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'You should not be able to issue command to already busy registrators';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Update UID of a card
+INSERT INTO command(command, id_registrator, id_card)
+VALUES ('personalize', 2, 3);
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Send depersonalize
+INSERT INTO command(command, id_registrator)
+VALUES ('depersonalize', 2);
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
+
+-- Send delete_last
+INSERT INTO command(command, id_registrator)
+VALUES ('delete_app', 2);
+
+-- Clear task queue
+DELETE FROM task_queue WHERE id_registrator = 2;
 
 -----------------------------------------------------------------------------------------------------------
 

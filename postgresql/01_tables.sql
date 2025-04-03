@@ -11,15 +11,9 @@ DROP TABLE IF EXISTS time_rule CASCADE;
 DROP TABLE IF EXISTS zone CASCADE;
 DROP TABLE IF EXISTS card_zone CASCADE;
 DROP TABLE IF EXISTS card_time_rule CASCADE;
+DROP TABLE IF EXISTS task_queue;
+DROP TABLE IF EXISTS command;
 -- End of removing
-
-
--- no            - default, not to be removed
--- depersonalize - send depersonalize command first, when successful, DELETE
--- delete_app    - send delete last app command first, when successful, DELETE
--- clear         - just remove the card from the system
-DROP TYPE IF EXISTS card_removal CASCADE;
-CREATE TYPE card_removal AS ENUM ('no', 'depersonalize', 'delete_app', 'clear');
 
 
 CREATE TABLE card_identifier (
@@ -104,8 +98,7 @@ CREATE TABLE card (
 
     name VARCHAR(256) NOT NULL,
     uid BYTEA CHECK (octet_length(uid) = 4 OR octet_length(uid) = 7),
-	erase card_removal NOT NULL DEFAULT 'no',
-    external_user_id INTEGER,
+    external_user_id INTEGER,   -- for associating this card with a user from an external database
     pin_code BYTEA CHECK (octet_length(pin_code) = 4),
     notes TEXT
 );
@@ -156,3 +149,34 @@ CREATE TABLE card_time_rule (
 );
 
 
+/*
+    To allow issueing commands to registrators
+    personalize   - send personalize command, useful for updating UID of an existing card entry
+                  - for new cards insert into card table instead
+    depersonalize - send depersonalize command first, when successful, DELETE
+    delete_app    - send delete last app command first, when successful, DELETE
+*/
+DROP TYPE IF EXISTS enum_command_type CASCADE;
+CREATE TYPE enum_command_type AS ENUM ('personalize', 'depersonalize', 'delete_app');
+
+-- Basically only an API endpoint, does not actually store values
+CREATE TABLE command(
+    id_command SERIAL PRIMARY KEY,
+    command enum_command_type NOT NULL,
+    id_registrator INTEGER NOT NULL REFERENCES registrator(id_device),
+    id_card INTEGER REFERENCES card(id_card)   -- Only for personalize to fill UID to the correct card
+);
+
+
+------------------------------------------
+
+-- Tasks for the python MQTT client to take care of
+CREATE TABLE task_queue (
+    id_task SERIAL PRIMARY KEY,
+    task_type TEXT NOT NULL,
+    payload JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- To easily find when a registrator is busy, only used for registrator commands
+    id_registrator INTEGER DEFAULT NULL REFERENCES registrator(id_device)   
+);

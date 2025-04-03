@@ -10,6 +10,7 @@
 \i functions/time_constraint.sql
 \i functions/time_rule.sql
 \i functions/zone.sql
+\i functions/command.sql
 
 
 /*
@@ -22,7 +23,7 @@ BEGIN
         SELECT * FROM registrator AS r
         WHERE r.id_device = NEW.id_device
     ) THEN
-        RAISE EXCEPTION 'This device is already registrator';
+        RAISE EXCEPTION 'This device is already a registrator';
     END IF;
 
     RETURN NEW;
@@ -40,7 +41,7 @@ BEGIN
         SELECT * FROM reader AS r
         WHERE r.id_device = NEW.id_device
     ) THEN
-        RAISE EXCEPTION 'This device is already reader';
+        RAISE EXCEPTION 'This device is already a reader';
     END IF;
 
     RETURN NEW;
