@@ -1,21 +1,46 @@
 import asyncio
 import psycopg2
+from psycopg2.extras import DictCursor
 
 
-async def handle_notify( conn ):
-    """ Async task waiting for notifications
+def carry_out_task( payload ):
+    print(payload)
+    return True
+
+
+async def process_tasks( conn ):
+    """ Poll and process tasks from the database task_queue
 
     Args:
         conn (psycopg2.connect): psycopg2 connection object
     """
 
     while 1:
-        conn.poll()
-        for notify in conn.notifies:
-            # TODO
-            pass
-        conn.notifies.clear()
+        # Just to not poll all the time
         await asyncio.sleep(0.5)
+
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+
+            # Get the oldest task
+            cur.execute("""
+                SELECT id_task, task_type, payload FROM task_queue
+                ORDER BY created_at
+                LIMIT 1
+            """)
+            task = cur.fetchone()
+
+            if not task:
+                continue
+
+            if carry_out_task(task):
+                cur.execute("""
+                    DELETE FROM task_queue
+                    WHERE id_task = %s
+                """, (task['id_task'],))
+            
+            else:
+                pass
+        
 
 
 def run_database():
@@ -30,10 +55,7 @@ def run_database():
     )
     conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
-    cursor = conn.cursor()
-    cursor.execute("LISTEN database_operation;")
-
-    asyncio.run( handle_notify(conn) )
+    asyncio.run( process_tasks(conn) )
 
 
 if __name__ == '__main__':
