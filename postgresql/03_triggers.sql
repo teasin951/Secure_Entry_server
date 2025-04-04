@@ -205,23 +205,7 @@ EXECUTE FUNCTION time_constraint_on_delete();
 /*
     Create triggers for each operation on time_rule table
 */
-CREATE OR REPLACE TRIGGER time_rule_operation_insert_trigger
-AFTER INSERT ON time_rule
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION time_rule_on_insert();
-
-CREATE OR REPLACE TRIGGER time_rule_operation_update_trigger
-AFTER UPDATE ON time_rule
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION time_rule_on_update();
-
-CREATE OR REPLACE TRIGGER time_rule_operation_delete_trigger
-AFTER DELETE ON time_rule
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION time_rule_on_delete();
+-- None needed --
 
 
 /*

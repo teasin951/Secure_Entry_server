@@ -221,17 +221,40 @@ END $$;
 
 -----------------------------------------------------------------------------------------------------------
 
+-- TODO test updating id_zone in time_rule
+-- TODO test adding time_constraint to time_rule assigned to a card without a zone
+-- TODO one card in one zone should not have multiple time rules
+-- TODO time_rule should have time_constraints when assinged to card_time_rule
+
 -- Create two timerules for zone 1
 INSERT INTO time_rule(id_zone, name)
 VALUES
 	(1, 'TestZone1'),
 	(1, 'TestZone2');
 
+-- Add time_rule to card
+INSERT INTO card_time_rule VALUES(3, 1, 1);
+
 -- Create two time_constraints for rule 1 and three for rule 2
 INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
 VALUES
 	(1, 1, '06:20', '8:40', '\x7C'),
 	(1, 1, '10:00', '16:15', '\x01'),
-	(2, 1, '06:20', '8:40', '\x7C'),
-	(2, 1, '10:00', '16:15', '\x01'),
-	(2, 1, '10:00', '16:15', '\x02');
+	(2, 1, '01:23', '04:56', '\x7C'),
+	(2, 1, '11:11', '12:22', '\x01');
+
+-- Add different time rule to a different card
+UPDATE card
+SET uid = '\x22334455667788'
+WHERE id_card = 4;
+
+-- TODO test without adding to card_zone here
+INSERT INTO card_zone
+VALUES(4, 1);
+
+-- Add time_rule to card
+INSERT INTO card_time_rule VALUES(4, 2, 1);
+
+INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
+VALUES
+	(2, 1, '13:33', '14:44', '\x02');

@@ -1,5 +1,105 @@
 
 /*
+    Update the full whitelist for a specified zone
+*/
+CREATE OR REPLACE FUNCTION update_full_whitelist_for_zone( zone_id INTEGER )
+RETURNS INTEGER AS $$
+BEGIN
+
+    INSERT INTO task_queue(task_type, payload)
+    VALUES(
+        'whitelist_full',
+
+        (
+        SELECT json_build_object(
+            'topic', 'whitelist/' || cz.id_zone || '/full',
+            'whitelist', json_agg(json_build_object(
+                'UID', c.uid,
+                'time_rules', (
+                    SELECT json_agg(json_build_object(
+                        'allow_from', tc.allow_from,
+                        'allow_to', tc.allow_to,
+                        'week_days', tc.week_days
+                    ))
+                    FROM card_time_rule ctr
+                    JOIN time_constraint tc ON ctr.id_time_rule = tc.id_time_rule
+                    WHERE ctr.id_card = c.id_card AND ctr.id_zone = cz.id_zone
+                )
+            ))
+        )
+        FROM card_zone cz
+        JOIN card c ON cz.id_card = c.id_card
+        WHERE cz.id_zone = zone_id
+        GROUP BY cz.id_zone
+        )
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+/*
+    Update whitelist for specified cards (if they are in a zone)
+
+    Operation types can be 'add', 'remove'
+
+    add - only add (or update existing) UIDs
+    remove - only remove UIDs
+*/
+CREATE OR REPLACE FUNCTION update_whitelist_for_cards_in_zone( card_ids INTEGER[], zone_id INTEGER, operation_type TEXT )
+RETURNS INTEGER AS $$
+BEGIN
+    IF card_ids IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    /*
+        Update full whitelist first to ensure potencial new reader gets it in full even if it misses the relative updates afterwards,
+        if it the also gets the updates, no problem, those will either 
+            - delete something that the reader does not have in it's whitelist -> no effect
+            - delete something it does have -> additions will follow as this was most likely an update and add comes after remove
+            - add something it already has, it will just recreate it
+    */
+    PERFORM update_full_whitelist_for_zone(zone_id);
+
+    -- Insert the task with changes
+    INSERT INTO task_queue(task_type, payload)
+    VALUES(
+        'whitelist_' || operation_type,
+
+        -- create a json array with updates
+        (
+        SELECT json_agg(card_data) AS result
+        FROM unnest(card_ids) AS card_id
+        LEFT JOIN LATERAL (
+            SELECT json_build_object(
+                'UID', c.uid,
+                'topic', 'whitelist/' || zone_id || '/' || operation_type,
+                'time_rules', (
+                    SELECT json_agg(json_build_object(
+                        'allow_from', tc.allow_from,
+                        'allow_to', tc.allow_to,
+                        'week_days', tc.week_days
+                    ))
+                    FROM card_time_rule ctr
+                    JOIN time_constraint tc USING(id_time_rule)
+                    WHERE ctr.id_card = card_id AND ctr.id_zone = zone_id
+                )
+            ) AS card_data
+            FROM card c
+            JOIN card_zone cz USING(id_card)  -- limit to cards that are in the zone
+            WHERE c.id_card = card_id AND cz.id_zone = zone_id
+        ) AS data ON true
+        )
+    );
+
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+/*
     Update configurations for devices using specified config
 */
 CREATE OR REPLACE FUNCTION push_new_config_to_devices(config_id INTEGER)
@@ -8,6 +108,8 @@ DECLARE
     readers_array JSONB;
     registrators_array JSONB;
 BEGIN
+
+    -- TODO modify to use joins instead?
 
     -- Make array with reader topics and respective zones to update
     SELECT json_agg(json_build_object(
