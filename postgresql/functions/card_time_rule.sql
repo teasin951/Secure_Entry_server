@@ -3,14 +3,12 @@
     Push whitelist modifications on change in card_time_rule
 
     Expects to have temp_new_rows table that contains the changed rows
-
-    operation can be 'add' or 'remove'
 */
 CREATE OR REPLACE FUNCTION update_whitelist_on_card_time_rule_change()
 RETURNS VOID AS $$
 DECLARE
-  zone_record RECORD;
-  card_ids INTEGER[];
+    zone_record RECORD;
+    card_ids INTEGER[];
 BEGIN
 
     -- Loop through each unique zone in temp_new_rows
@@ -22,6 +20,11 @@ BEGIN
         FROM temp_new_rows tnr 
         JOIN card_zone USING(id_card, id_zone)      -- To get only cards that are in a zone
         WHERE id_zone = zone_record.id_zone;        -- Filter for current zone
+
+
+        IF card_ids IS NOT NULL THEN
+            PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
+        END IF;
 
         -- Update whitelist for THIS zone and its cards
         PERFORM update_whitelist_for_cards_in_zone(

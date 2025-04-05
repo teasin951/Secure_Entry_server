@@ -17,7 +17,7 @@ $$ LANGUAGE plpgsql;
 /*
     Handle update on zone
 
-    - Do nothing, only name and notes can be changed
+    - Do nothing, only name and notes can be changed if in use
 */
 CREATE OR REPLACE FUNCTION zone_on_update()
 RETURNS TRIGGER AS $$

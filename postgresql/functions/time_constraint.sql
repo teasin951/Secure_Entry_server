@@ -22,6 +22,11 @@ BEGIN
         JOIN temp_new_rows USING(id_zone, id_time_rule)  -- To filter only for changes
         WHERE id_zone = zone_record.id_zone;             -- Filter for current zone
 
+
+        IF card_ids IS NOT NULL THEN
+            PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
+        END IF;
+
         -- Update whitelist for THIS zone and its cards
         PERFORM update_whitelist_for_cards_in_zone(
             card_ids, 

@@ -46,6 +46,12 @@ $$ LANGUAGE plpgsql;
 
     add - only add (or update existing) UIDs
     remove - only remove UIDs
+    
+    NOTE: 
+        Update full whitelist first to ensure potencial new reader gets it in full even if it misses the relative updates afterwards,
+        if it the also gets the updates, no problem, those will either 
+            - delete something that the reader does not have in it's whitelist -> no effect
+            - add something it already has, which will just update it
 */
 CREATE OR REPLACE FUNCTION update_whitelist_for_cards_in_zone( card_ids INTEGER[], zone_id INTEGER, operation_type TEXT )
 RETURNS INTEGER AS $$
@@ -53,14 +59,6 @@ BEGIN
     IF card_ids IS NULL THEN
         RETURN NULL;
     END IF;
-
-    /*
-        Update full whitelist first to ensure potencial new reader gets it in full even if it misses the relative updates afterwards,
-        if it the also gets the updates, no problem, those will either 
-            - delete something that the reader does not have in it's whitelist -> no effect
-            - add something it already has, which will just update it
-    */
-    PERFORM update_full_whitelist_for_zone(zone_id);
 
     -- Insert the task with changes
     INSERT INTO task_queue(task_type, payload)
