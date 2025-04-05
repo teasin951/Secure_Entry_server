@@ -110,7 +110,7 @@ CREATE TABLE time_rule (
         ON DELETE CASCADE,
 
     name VARCHAR(256) NOT NULL,
-    note TEXT,
+    notes TEXT,
 
     CONSTRAINT pk_time_rule PRIMARY KEY (id_time_rule, id_zone)
 );
@@ -120,7 +120,8 @@ CREATE TABLE time_constraint (
     id_time_constraint SERIAL PRIMARY KEY,
     id_time_rule INTEGER NOT NULL,
     id_zone INTEGER NOT NULL,
-    FOREIGN KEY(id_time_rule, id_zone) REFERENCES time_rule(id_time_rule, id_zone),
+    FOREIGN KEY(id_time_rule, id_zone) REFERENCES time_rule(id_time_rule, id_zone) 
+        ON DELETE CASCADE,
 
     allow_from TIME NOT NULL,
     allow_to TIME NOT NULL,
@@ -144,7 +145,7 @@ CREATE TABLE card_time_rule (
     id_time_rule INTEGER NOT NULL,
     id_zone INTEGER NOT NULL,
 
-    FOREIGN KEY(id_time_rule, id_zone) REFERENCES time_rule(id_time_rule, id_zone),
+    FOREIGN KEY(id_time_rule, id_zone) REFERENCES time_rule(id_time_rule, id_zone) ON DELETE CASCADE,
     CONSTRAINT pk_card_time_rule PRIMARY KEY (id_card, id_time_rule, id_zone)
 );
 

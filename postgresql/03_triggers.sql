@@ -25,6 +25,14 @@ BEFORE INSERT ON registrator
 FOR EACH ROW EXECUTE FUNCTION registrator_is_not_reader_check();
 
 
+/*
+    Card canot have multiple time rules for the same zone
+*/
+CREATE OR REPLACE TRIGGER card_has_multiple_timerules_for_zone_check_trigger
+AFTER INSERT OR UPDATE ON card_time_rule
+FOR EACH ROW EXECUTE FUNCTION card_has_multiple_timerules_for_zone_check();
+
+
 ---------------------------------- API triggers --------------------------------
 
 /*

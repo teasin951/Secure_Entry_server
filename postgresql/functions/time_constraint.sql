@@ -1,3 +1,39 @@
+
+/*
+    Push whitelist modifications on change in time_constraint
+
+    Expects to have temp_new_rows table that contains the changed rows
+*/
+CREATE OR REPLACE FUNCTION update_whitelist_on_time_constraint_change()
+RETURNS VOID AS $$
+DECLARE
+    zone_record RECORD;
+    card_ids INTEGER[];
+BEGIN
+
+    -- Loop through each unique zone in temp_new_rows
+    FOR zone_record IN 
+        SELECT DISTINCT id_zone FROM temp_new_rows
+    LOOP
+        -- Get cards for THIS zone
+        SELECT array_agg( DISTINCT id_card ) INTO card_ids 
+        FROM card_time_rule ctr
+        JOIN card_zone USING(id_card, id_zone)           -- To get only cards that are in a zone
+        JOIN temp_new_rows USING(id_zone, id_time_rule)  -- To filter only for changes
+        WHERE id_zone = zone_record.id_zone;             -- Filter for current zone
+
+        -- Update whitelist for THIS zone and its cards
+        PERFORM update_whitelist_for_cards_in_zone(
+            card_ids, 
+            zone_record.id_zone,  -- Current zone ID
+            'add'  -- Add as we want to update existing values (if there are none, the card is not in zone and won't be updated)
+        );
+    END LOOP;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
 /*
     Handle insert into time_constraint 
 
@@ -5,33 +41,18 @@
 */
 CREATE OR REPLACE FUNCTION time_constraint_on_insert()
 RETURNS TRIGGER AS $$
-DECLARE
-  zone_record RECORD;
-  card_ids INTEGER[];
 BEGIN
 
-    -- Loop through each unique zone in new_rows
-    FOR zone_record IN 
-        SELECT DISTINCT id_zone FROM new_rows
-    LOOP
-    -- Get cards for THIS zone
-    SELECT array_agg(id_card) INTO card_ids 
-    FROM card_time_rule
-    WHERE (id_zone, id_time_rule) IN (
-        SELECT id_zone, id_time_rule 
-        FROM new_rows 
-        WHERE id_zone = zone_record.id_zone  -- Filter for current zone
-    );
+    -- Create a temporary table to hold the transition data for the next function 
+    CREATE TEMP TABLE temp_new_rows AS
+    SELECT * FROM new_rows;
 
-    -- Update whitelist for THIS zone and its cards
-    PERFORM update_whitelist_for_cards_in_zone(
-        card_ids, 
-        zone_record.id_zone,  -- Current zone ID
-        'add'  -- Add as we want to update existing values (if there are none, the card is not in zone and won't be updated)
-    );
-    END LOOP;
+    PERFORM update_whitelist_on_time_constraint_change();
+
+    DROP TABLE IF EXISTS temp_new_rows;
 
     RETURN NULL;
+
 END;
 $$ LANGUAGE plpgsql;
 
@@ -44,30 +65,17 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION time_constraint_on_update()
 RETURNS TRIGGER AS $$
 DECLARE
-  zone_record RECORD;
-  card_ids INTEGER[];
+    zone_record RECORD;
+    card_ids INTEGER[];
 BEGIN
 
-    -- Loop through each unique zone in new_rows
-    FOR zone_record IN 
-        SELECT DISTINCT id_zone FROM new_rows
-    LOOP
-    -- Get cards for THIS zone
-    SELECT array_agg(id_card) INTO card_ids 
-    FROM card_time_rule
-    WHERE (id_zone, id_time_rule) IN (
-        SELECT id_zone, id_time_rule 
-        FROM new_rows 
-        WHERE id_zone = zone_record.id_zone  -- Filter for current zone
-    );
+    -- Create a temporary table to hold the transition data for the next function 
+    CREATE TEMP TABLE temp_new_rows AS
+    SELECT * FROM new_rows;
 
-    -- Update whitelist for THIS zone and its cards
-    PERFORM update_whitelist_for_cards_in_zone(
-        card_ids, 
-        zone_record.id_zone,  -- Current zone ID
-        'add'  -- Add as we want to update existing values (if there are none, the card is not in zone and won't be updated)
-    );
-    END LOOP;
+    PERFORM update_whitelist_on_time_constraint_change();
+
+    DROP TABLE IF EXISTS temp_new_rows;
 
     RETURN NULL;
 END;
@@ -82,31 +90,17 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION time_constraint_on_delete()
 RETURNS TRIGGER AS $$
 DECLARE
-  zone_record RECORD;
-  card_ids INTEGER[];
+    zone_record RECORD;
+    card_ids INTEGER[];
 BEGIN
 
-    -- Loop through each unique zone in new_rows
-    FOR zone_record IN 
-        SELECT DISTINCT id_zone FROM old_rows
-    LOOP
-    -- Get cards for THIS zone
-    SELECT array_agg(id_card) INTO card_ids 
-    FROM card_time_rule
-    WHERE (id_zone, id_time_rule) IN (
-        SELECT id_zone, id_time_rule 
-        FROM old_rows 
-        WHERE id_zone = zone_record.id_zone  -- Filter for current zone
-    );
+    -- Create a temporary table to hold the transition data for the next function 
+    CREATE TEMP TABLE temp_new_rows AS
+    SELECT * FROM old_rows;
 
-    -- Update whitelist for THIS zone and its cards
-    PERFORM update_whitelist_for_cards_in_zone(
-        card_ids, 
-        zone_record.id_zone,  -- Current zone ID
-        'add'  -- Add as we want to update existing values
-    );
-    END LOOP;
+    PERFORM update_whitelist_on_time_constraint_change();
 
+    DROP TABLE IF EXISTS temp_new_rows;
 
     RETURN NULL;
 END;

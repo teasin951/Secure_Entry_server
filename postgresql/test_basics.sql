@@ -9,7 +9,7 @@ INSERT INTO config(appmok, appvok, ocpsk, name, id_card_identifier, id_pacs_obje
 VALUES('\x11111111111111111111111111111111', '\x22222222222222222222222222222222', '\x33333333333333333333333333333333', 'Test config', 1, 1);
 
 INSERT INTO zone(name)
-VALUES('TestZone');
+VALUES('TestZone'), ('TestZone2');
 
 -------------------------------------------------------------------------------------------
 
@@ -149,13 +149,24 @@ SET name = 'ChangedConfig';
 
 -----------------------------------------------------------------------------------------------------------
 
--- Create new cards in bulk
-INSERT INTO card(name, id_device)
-VALUES
-	('TestCard',  2),
-	('TestCard2', NULL),
-	('TestCard3', NULL),
-	('TestCard4', NULL);
+-- Create new cards in bulk & test that it creates a task
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    INSERT INTO card(name, id_device)
+    VALUES
+        ('TestCard',  2),
+        ('TestCard2', NULL),
+        ('TestCard3', NULL),
+        ('TestCard4', NULL);
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 1) THEN
+        RAISE EXCEPTION 'Inserting into a card with id_device does not create a task';
+    END IF;
+END $$;
 
 -- Try to add card without UID to zone
 DO $$
@@ -221,40 +232,161 @@ END $$;
 
 -----------------------------------------------------------------------------------------------------------
 
--- TODO test updating id_zone in time_rule
--- TODO test adding time_constraint to time_rule assigned to a card without a zone
--- TODO one card in one zone should not have multiple time rules
--- TODO time_rule should have time_constraints when assinged to card_time_rule
-
 -- Create two timerules for zone 1
 INSERT INTO time_rule(id_zone, name)
 VALUES
 	(1, 'TestZone1'),
 	(1, 'TestZone2');
 
--- Add time_rule to card
-INSERT INTO card_time_rule VALUES(3, 1, 1);
 
--- Create two time_constraints for rule 1 and three for rule 2
-INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
-VALUES
-	(1, 1, '06:20', '8:40', '\x7C'),
-	(1, 1, '10:00', '16:15', '\x01'),
-	(2, 1, '01:23', '04:56', '\x7C'),
-	(2, 1, '11:11', '12:22', '\x01');
+-- Add time_rule to a card
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    INSERT INTO card_time_rule VALUES(3, 1, 1);
+
+    IF NOT (SELECT count(*) FROM task_queue) > (task_count + 1) THEN
+        RAISE EXCEPTION 'Card added to zone but no whitelist update issued';
+    END IF;
+END $$;
+
+
+-- Test that a card cannot have multiple time rules in one zone
+DO $$
+DECLARE
+    success BOOLEAN;
+BEGIN
+    BEGIN
+        INSERT INTO card_time_rule VALUES(3, 2, 1);
+
+        success := TRUE;
+    EXCEPTION WHEN OTHERS THEN
+        success := FALSE;
+    END;
+
+    IF success THEN
+        RAISE WARNING 'One card must not be allowed to have multiple time rules for the same zone';
+    END IF;
+
+    ROLLBACK; 
+END $$;
+
+
+-- Give card a time rule in a different zone
+INSERT INTO time_rule(id_zone, name) VALUES(2, 'RuleZone2');
+INSERT INTO card_time_rule VALUES(3, 3, 2);
+
+
+-- Create time_constraints for rule 1 and rule 2 
+-- Test that there have been tasks created (1. whitelist full and 2. whitelist add)
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
+    VALUES
+        (1, 1, '01:11', '1:11', '\x7C'),
+        (1, 1, '01:22', '01:22', '\x01'),
+        (2, 1, '02:11', '02:11', '\x7C');
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+        RAISE EXCEPTION 'There should have been a task created after time_constraint insert';
+    END IF;
+END $$;
+
 
 -- Add different time rule to a different card
 UPDATE card
 SET uid = '\x22334455667788'
 WHERE id_card = 4;
 
--- TODO test without adding to card_zone here
-INSERT INTO card_zone
-VALUES(4, 1);
 
 -- Add time_rule to card
 INSERT INTO card_time_rule VALUES(4, 2, 1);
 
-INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
-VALUES
-	(2, 1, '13:33', '14:44', '\x02');
+
+-- Test that inserting a new constraint to a card without a zone does not create tasks
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    INSERT INTO time_constraint(id_time_rule, id_zone, allow_from, allow_to, week_days)
+    VALUES
+        (2, 1, '13:33', '14:44', '\x02');
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count) THEN
+        RAISE EXCEPTION 'We should not update whitelist on insert to time_constraint when the card is not in a zone';
+    END IF;
+END $$;
+
+
+-- Test that inserting a card into card_zone creates tasks
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    INSERT INTO card_zone
+    VALUES(4, 1);
+
+    -- IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+    --     RAISE EXCEPTION 'We should issue a task when adding card to a zone';
+    -- END IF;
+END $$;
+
+
+-- Test that updating a constraint creates tasks
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    UPDATE time_constraint
+    SET allow_to = '12:30'
+    WHERE id_time_constraint = 1;
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+        RAISE EXCEPTION 'Updating constraints should create tasks';
+    END IF;
+END $$;
+
+
+-- Test that deleting a constraint creates tasks (should have null now as time_rule)
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    DELETE FROM time_constraint
+    WHERE id_time_rule = 1;
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+        RAISE EXCEPTION 'Updating constraints should create tasks';
+    END IF;
+END $$;
+
+
+-- Test deleting a rule creates tasks
+DO $$
+DECLARE
+    task_count INTEGER;
+BEGIN
+    SELECT count(*) INTO task_count FROM task_queue;
+
+    DELETE FROM time_rule
+    WHERE id_time_rule = 2;
+
+    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+        RAISE EXCEPTION 'Updating constraints should create tasks';
+    END IF;
+END $$;

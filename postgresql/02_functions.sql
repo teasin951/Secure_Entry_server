@@ -58,8 +58,7 @@ BEGIN
         Update full whitelist first to ensure potencial new reader gets it in full even if it misses the relative updates afterwards,
         if it the also gets the updates, no problem, those will either 
             - delete something that the reader does not have in it's whitelist -> no effect
-            - delete something it does have -> additions will follow as this was most likely an update and add comes after remove
-            - add something it already has, it will just recreate it
+            - add something it already has, which will just update it
     */
     PERFORM update_full_whitelist_for_zone(zone_id);
 
@@ -234,6 +233,23 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Card has to have UID before it is added to a zone';
     END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+/*
+    Check that one card cannot have multiple time rules for the same zone
+*/
+CREATE OR REPLACE FUNCTION card_has_multiple_timerules_for_zone_check()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (
+        SELECT count(*) FROM card_time_rule ctr WHERE (ctr.id_card, ctr.id_zone) = (NEW.id_card, NEW.id_zone)
+    ) > 1 THEN
+        RAISE EXCEPTION 'Card cannot have multiple time rules for the same zone';
+    END IF;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
