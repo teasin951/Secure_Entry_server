@@ -98,15 +98,15 @@ $$ LANGUAGE plpgsql;
 
 /*
     Update configurations for devices using specified config
+
+    specify id_device to change only a certain device
 */
-CREATE OR REPLACE FUNCTION push_new_config_to_devices(config_id INTEGER)
+CREATE OR REPLACE FUNCTION push_new_config_to_devices(config_id INTEGER, device_id INTEGER DEFAULT NULL)
 RETURNS INTEGER AS $$
 DECLARE
     readers_array JSONB;
     registrators_array JSONB;
 BEGIN
-
-    -- TODO modify to use joins instead?
 
     -- Make array with reader topics and respective zones to update
     SELECT json_agg(json_build_object(
@@ -116,9 +116,9 @@ BEGIN
         )))
         ) INTO readers_array 
     FROM device
-    WHERE id_config = config_id AND id_device IN (
-        SELECT id_device FROM reader 
-    ); 
+    JOIN reader USING(id_device)
+    WHERE id_config = config_id AND 
+        ( device_id IS NULL OR id_device = device_id );  -- possibly restrict to a device id
 
     -- Make array with registrators and their APPMOK
     SELECT json_agg(json_build_object(
@@ -126,9 +126,10 @@ BEGIN
         'appmok', (SELECT appmok::text FROM config WHERE id_config = config_id))
         ) INTO registrators_array 
     FROM device
-    WHERE id_config = config_id AND id_device IN (
-        SELECT id_device FROM registrator
-    ); 
+    JOIN registrator USING(id_device)
+    WHERE id_config = config_id AND
+        ( device_id IS NULL OR id_device = device_id );  -- possibly restrict to a device id
+
 
     -- Put to queue
     INSERT INTO task_queue(task_type, payload)
@@ -231,23 +232,6 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Card has to have UID before it is added to a zone';
     END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
-/*
-    Check that one card cannot have multiple time rules for the same zone
-*/
-CREATE OR REPLACE FUNCTION card_has_multiple_timerules_for_zone_check()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (
-        SELECT count(*) FROM card_time_rule ctr WHERE (ctr.id_card, ctr.id_zone) = (NEW.id_card, NEW.id_zone)
-    ) > 1 THEN
-        RAISE EXCEPTION 'Card cannot have multiple time rules for the same zone';
-    END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

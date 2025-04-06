@@ -15,13 +15,13 @@ BEGIN
     FOR zone_record IN 
         SELECT DISTINCT id_zone FROM temp_new_rows
     LOOP
+
+        PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
+
         -- Get cards for THIS zone
         SELECT array_agg( DISTINCT tnr.id_card ) INTO card_ids 
         FROM temp_new_rows tnr 
         WHERE id_zone = zone_record.id_zone;        -- Filter for current zone
-
-
-        PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
 
         -- Update whitelist for THIS zone and its cards
         PERFORM update_whitelist_for_cards_in_zone(
@@ -39,6 +39,8 @@ $$ LANGUAGE plpgsql;
     Push whitelist remove modifications on change in card_zone
 
     Expects to have temp_old_rows table that contains the changed rows
+
+    TODO if the whitelist is empty, python should clear the persistent session
 */
 CREATE OR REPLACE FUNCTION remove_from_whitelist_on_card_zone_change()
 RETURNS VOID AS $$
@@ -119,24 +121,12 @@ BEGIN
 
     DROP TABLE IF EXISTS temp_old_rows;
 
+    CREATE TEMP TABLE temp_new_rows AS
+    SELECT * FROM new_rows;
 
-    -- Then create add list
-    FOR zone_record IN 
-        SELECT DISTINCT id_zone FROM new_rows
-    LOOP
-        -- Get cards for THIS zone
-        SELECT array_agg( DISTINCT nr.id_card ) INTO card_ids 
-        FROM new_rows nr 
-        WHERE id_zone = zone_record.id_zone;        -- Filter for current zone
+    PERFORM update_whitelist_on_card_zone_change();
 
-        -- Update whitelist for THIS zone and its cards
-        PERFORM update_whitelist_for_cards_in_zone(
-            card_ids, 
-            zone_record.id_zone,  -- Current zone ID
-            'add'
-        );
-    END LOOP;
-
+    DROP TABLE IF EXISTS temp_new_rows;
 
     RETURN NULL;
 END;

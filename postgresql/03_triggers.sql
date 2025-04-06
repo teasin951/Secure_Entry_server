@@ -25,14 +25,6 @@ BEFORE INSERT ON registrator
 FOR EACH ROW EXECUTE FUNCTION registrator_is_not_reader_check();
 
 
-/*
-    Card canot have multiple time rules for the same zone
-*/
-CREATE OR REPLACE TRIGGER card_has_multiple_timerules_for_zone_check_trigger
-AFTER INSERT OR UPDATE ON card_time_rule
-FOR EACH ROW EXECUTE FUNCTION card_has_multiple_timerules_for_zone_check();
-
-
 ---------------------------------- API triggers --------------------------------
 
 /*
@@ -116,23 +108,10 @@ EXECUTE FUNCTION config_on_update();
 /*
     Create triggers for each operation on device table
 */
-CREATE OR REPLACE TRIGGER device_operation_insert_trigger
-AFTER INSERT ON device
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION device_on_insert();
-
 CREATE OR REPLACE TRIGGER device_operation_update_trigger
 AFTER UPDATE ON device
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION device_on_update();
-
-CREATE OR REPLACE TRIGGER device_operation_delete_trigger
-AFTER DELETE ON device
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION device_on_delete();
 
 
 /*
@@ -149,42 +128,36 @@ EXECUTE FUNCTION pacs_object_on_update();
 */
 CREATE OR REPLACE TRIGGER reader_operation_insert_trigger
 AFTER INSERT ON reader
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION reader_on_insert();
 
 CREATE OR REPLACE TRIGGER reader_operation_update_trigger
 AFTER UPDATE ON reader
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION reader_on_update();
 
 CREATE OR REPLACE TRIGGER reader_operation_delete_trigger
 AFTER DELETE ON reader
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION reader_on_delete();
 
 
 /*
     Create triggers for each operation on reader table
 */
-CREATE OR REPLACE TRIGGER reader_operation_insert_trigger
-AFTER INSERT ON reader
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
+CREATE OR REPLACE TRIGGER registrator_operation_insert_trigger
+AFTER INSERT ON registrator
+FOR EACH ROW
 EXECUTE FUNCTION registrator_on_insert();
 
-CREATE OR REPLACE TRIGGER reader_operation_update_trigger
-AFTER UPDATE ON reader
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
+CREATE OR REPLACE TRIGGER registrator_operation_update_trigger
+AFTER UPDATE ON registrator
+FOR EACH ROW
 EXECUTE FUNCTION registrator_on_update();
 
-CREATE OR REPLACE TRIGGER reader_operation_delete_trigger
-AFTER DELETE ON reader
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
+CREATE OR REPLACE TRIGGER registrator_operation_delete_trigger
+AFTER DELETE ON registrator
+FOR EACH ROW
 EXECUTE FUNCTION registrator_on_delete();
 
 
@@ -221,20 +194,12 @@ EXECUTE FUNCTION time_constraint_on_delete();
 */
 CREATE OR REPLACE TRIGGER zone_operation_insert_trigger
 AFTER INSERT ON zone
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION zone_on_insert();
-
-CREATE OR REPLACE TRIGGER zone_operation_update_trigger
-AFTER UPDATE ON zone
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION zone_on_update();
 
 CREATE OR REPLACE TRIGGER zone_operation_delete_trigger
 AFTER DELETE ON zone
-REFERENCING OLD TABLE AS old_rows
-FOR EACH STATEMENT
+FOR EACH ROW
 EXECUTE FUNCTION zone_on_delete();
 
 

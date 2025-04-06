@@ -42,12 +42,19 @@ $$ LANGUAGE plpgsql;
 /*
     Handle update on card
 
-    - UID change -> remove old UID from whitelists, add new UID      -- TODO (but you can delete and insert)
+    - UID change -> remove old UID from whitelists, add new UID if not filling from null
 */
 CREATE OR REPLACE FUNCTION card_on_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- TODO find relevant zones, delete and add to them should do
+
+    -- Updating card_zone triggers delete and insert exactly how we want
+    UPDATE card_zone 
+    SET id_card = id_card
+    WHERE id_card IN(
+        SELECT id_card FROM new_rows
+    );
+
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;

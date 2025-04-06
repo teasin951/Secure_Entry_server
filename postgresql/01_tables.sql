@@ -146,7 +146,8 @@ CREATE TABLE card_time_rule (
     id_zone INTEGER NOT NULL,
 
     FOREIGN KEY(id_time_rule, id_zone) REFERENCES time_rule(id_time_rule, id_zone) ON DELETE CASCADE,
-    CONSTRAINT pk_card_time_rule PRIMARY KEY (id_card, id_time_rule, id_zone)
+    CONSTRAINT pk_card_time_rule PRIMARY KEY (id_card, id_time_rule, id_zone),
+    CONSTRAINT card_only_one_rule_per_zone UNIQUE (id_card, id_zone)
 );
 
 

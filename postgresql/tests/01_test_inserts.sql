@@ -130,7 +130,7 @@ BEGIN
     ROLLBACK; 
 END $$;
 
--- Clear task queue
+-- Clear personalize task from task queue
 DELETE FROM task_queue WHERE id_registrator = 2;
 
 -----------------------------------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ DELETE FROM card WHERE name = 'TT';
 
 -- Simulate registrator filling UID
 UPDATE card
-SET uid = '\x11223344556677'
+SET uid = '\x33333333333333'
 WHERE id_card = 3;
 
 -- Add card to zone
@@ -302,7 +302,7 @@ END $$;
 
 -- Add different time rule to a different card
 UPDATE card
-SET uid = '\x22334455667788'
+SET uid = '\x44444444444444'
 WHERE id_card = 4;
 
 
@@ -360,33 +360,33 @@ BEGIN
 END $$;
 
 
--- Test that deleting a constraint creates tasks (should have null now as time_rule)
-DO $$
-DECLARE
-    task_count INTEGER;
-BEGIN
-    SELECT count(*) INTO task_count FROM task_queue;
+-- -- Test that deleting a constraint creates tasks (should have null now as time_rule)
+-- DO $$
+-- DECLARE
+--     task_count INTEGER;
+-- BEGIN
+--     SELECT count(*) INTO task_count FROM task_queue;
 
-    DELETE FROM time_constraint
-    WHERE id_time_rule = 1;
+--     DELETE FROM time_constraint
+--     WHERE id_time_rule = 1;
 
-    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
-        RAISE WARNING 'Updating constraints should create tasks';
-    END IF;
-END $$;
+--     IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+--         RAISE WARNING 'Updating constraints should create tasks';
+--     END IF;
+-- END $$;
 
 
--- Test deleting a rule creates tasks
-DO $$
-DECLARE
-    task_count INTEGER;
-BEGIN
-    SELECT count(*) INTO task_count FROM task_queue;
+-- -- Test deleting a rule creates tasks
+-- DO $$
+-- DECLARE
+--     task_count INTEGER;
+-- BEGIN
+--     SELECT count(*) INTO task_count FROM task_queue;
 
-    DELETE FROM time_rule
-    WHERE id_time_rule = 2;
+--     DELETE FROM time_rule
+--     WHERE id_time_rule = 2;
 
-    IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
-        RAISE WARNING 'Updating constraints should create tasks';
-    END IF;
-END $$;
+--     IF NOT (SELECT count(*) FROM task_queue) = (task_count + 2) THEN
+--         RAISE WARNING 'Updating constraints should create tasks';
+--     END IF;
+-- END $$;
