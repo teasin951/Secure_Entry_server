@@ -1,54 +1,87 @@
 import paho.mqtt.client as mqtt
 
-# MQTT broker details
-broker = "your.broker.address"
-port = 8883
-topic = "your/topic"  # TODO more topics
 
-# Client details
-mqtt_username = "your_username"
-mqtt_password = "your_password"
+class MQTTHandler:
+    def __init__(self, broker, port, username, password, client_id, ca_cert_path, server_cert_path, server_key_path, dbconn=None):
+        self.conn = dbconn
+        self.client = mqtt.Client(client_id=client_id)
+        self.card_registrators = {}  # Should be a dictionary with id_device to register id_card
 
-# TLS/SSL configuration
-ca_cert = "path/to/ca.crt"  # Path to the CA certificate
-client_cert = "path/to/client.crt"  # Path to the client certificate
-client_key = "path/to/client.key"  # Path to the client private key
+        self.client.tls_set(
+            ca_certs=ca_cert_path,
+            certfile=server_cert_path,
+            keyfile=server_key_path,
+            tls_version=mqtt.ssl.PROTOCOL_TLS  # Use the default TLS version
+        )
 
+        self.client.username_pw_set(username, password)
 
-# Create an MQTT client instance
-client = mqtt.Client()
+        # Assign callback functions
+        self.client.on_connect = self.mqtt_on_connect
+        self.client.on_message = self.mqtt_on_message
 
-# Set up TLS/SSL
-client.tls_set(
-    ca_certs=ca_cert,  # Path to the CA certificate
-    certfile=client_cert,  # Path to the client certificate (if required)
-    keyfile=client_key,  # Path to the client private key (if required)
-    tls_version=mqtt.ssl.PROTOCOL_TLS  # Use the default TLS version
-)
-
-# Set username and password (if required)
-client.username_pw_set(mqtt_username, mqtt_password);
+        self.client.loop_start()
+        self.client.connect(broker, port, 60)
 
 
-# Callback when the client receives a message
-def on_message(client, userdata, message):
-    print(f"Received message on topic {message.topic}: {message.payload.decode()}")
+    # Callback when the client receives a message
+    def mqtt_on_message(self, client, userdata, message):
+        print(f"Received message on topic {message.topic}: {message.payload.decode()}")
+        match message.topic:
+            case "reader/logs":
+                # TODO INSERT logs
+                print("Reader logs: %s", message.payload.decode())
+                pass
+        
+            case "registrator/logs":
+                # TODO INSERT logs
+                print("Registrator logs: %s", message.payload.decode())
+                pass
 
-# Callback when the client connects to the broker
-def on_connect(client, userdata, flags, rc):
-    if rc == 0:
-        print("Connected to MQTT broker!")
-        client.subscribe(topic)  # Subscribe to the topic
-    else:
-        print(f"Connection failed with code {rc}")
+            case client.topic_matches_subscription("registrator/+/UID", message.topic):
+                print("UID: %s", message.payload.decode())
+                self.receive_UID(message)
+
+            case "$CONTROL/dynamic-security/v1/response":
+                print("DynSec response: ", message.payload)
 
 
-# Assign callback functions
-client.on_connect = on_connect
-client.on_message = on_message
+    def receive_UID(self, message):
+        # If the card failed to be registered, TODO then what?
+        if( message.payload == 0xFFFFFFFFFFFFFF ):
+            return
 
-# Connect to the broker
-client.connect(broker, port, 60)
+        mqtt_registrator = message.topic.split('/')[1]
+        self.fill_UID_to_card( self.card_registrators.pop(mqtt_registrator), message.payload )
+            
 
-# Start the non-blocking loop
-client.loop_start()
+    def fill_UID_to_card(self, id_card, UID):
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                UPDATE card SET uid = %s
+                WHERE id_card = %d
+            """, (UID,), id_card)
+
+
+    # Callback when the client connects to the broker
+    def mqtt_on_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            print("Connected to MQTT broker!")
+            client.subscribe([
+                ("reader/logs", 0),
+                ("registrator/logs", 0),
+                ("registrator/+/UID", 2)
+            ])
+        else:
+            print(f"Connection failed with code {rc}")
+
+
+    def wait_registrator_get_UID(self, mqtt_username, id_card):
+        self.card_registrators[mqtt_username] = id_card
+
+    
+    def publish_message(self, topic, payload, qos, retain):
+        self.client.publish(topic, payload, qos, retain)
+        # TODO failure handeling
+
+

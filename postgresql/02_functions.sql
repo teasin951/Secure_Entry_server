@@ -12,25 +12,30 @@ BEGIN
 
         (
         SELECT json_build_object(
-            'topic', 'whitelist/' || cz.id_zone || '/full',
-            'whitelist', json_agg(json_build_object(
-                'UID', c.uid,
-                'time_rules', (
-                    SELECT json_agg(json_build_object(
-                        'allow_from', tc.allow_from,
-                        'allow_to', tc.allow_to,
-                        'week_days', tc.week_days
-                    ))
-                    FROM card_time_rule ctr
-                    JOIN time_constraint tc ON ctr.id_time_rule = tc.id_time_rule
-                    WHERE ctr.id_card = c.id_card AND ctr.id_zone = cz.id_zone
+            'topic', 'whitelist/' || zone_id || '/full',
+
+            'whitelist', (
+                SELECT COALESCE(json_agg(json_build_object(
+                    'UID', c.uid,
+                    'time_rules', (
+                        SELECT COALESCE(json_agg(json_build_object(
+                            'allow_from', tc.allow_from,
+                            'allow_to', tc.allow_to,
+                            'week_days', tc.week_days
+                            )),
+                            '[]'::json
+                        )
+                        FROM card_time_rule ctr
+                        JOIN time_constraint tc ON ctr.id_time_rule = tc.id_time_rule
+                        WHERE ctr.id_card = c.id_card AND ctr.id_zone = cz.id_zone
+                    )
+                )), '[]'::json
                 )
-            ))
+                FROM card_zone cz
+                JOIN card c ON cz.id_card = c.id_card
+                WHERE cz.id_zone = zone_id
+            )
         )
-        FROM card_zone cz
-        JOIN card c ON cz.id_card = c.id_card
-        WHERE cz.id_zone = zone_id
-        GROUP BY cz.id_zone
         )
     );
 
@@ -67,18 +72,22 @@ BEGIN
 
         -- create a json array with updates
         (
-        SELECT json_agg(card_data) AS result
+        SELECT json_build_object(
+            'topic', 'whitelist/' || zone_id || '/' || operation_type,
+            'whitelist', COALESCE(json_agg(card_data), '[]'::json)
+        ) AS result
         FROM unnest(card_ids) AS card_id
         LEFT JOIN LATERAL (
             SELECT json_build_object(
                 'UID', c.uid,
-                'topic', 'whitelist/' || zone_id || '/' || operation_type,
                 'time_rules', (
-                    SELECT json_agg(json_build_object(
+                    SELECT COALESCE(json_agg(json_build_object(
                         'allow_from', tc.allow_from,
                         'allow_to', tc.allow_to,
                         'week_days', tc.week_days
-                    ))
+                        )), 
+                        '[]'::json
+                    )
                     FROM card_time_rule ctr
                     JOIN time_constraint tc USING(id_time_rule)
                     WHERE ctr.id_card = card_id AND ctr.id_zone = zone_id
@@ -109,22 +118,22 @@ DECLARE
 BEGIN
 
     -- Make array with reader topics and respective zones to update
-    SELECT json_agg(json_build_object(
+    SELECT COALESCE(json_agg(json_build_object(
         'topic', 'reader/' || mqtt_username || '/setup',
-        'zone', (SELECT id_zone FROM reader WHERE id_device IN (
+        'zone', (SELECT id_zone::text FROM reader WHERE id_device IN (
             SELECT id_device FROM device WHERE id_config = config_id
         )))
-        ) INTO readers_array 
+        ), '[]'::json) INTO readers_array 
     FROM device
     JOIN reader USING(id_device)
     WHERE id_config = config_id AND 
         ( device_id IS NULL OR id_device = device_id );  -- possibly restrict to a device id
 
     -- Make array with registrators and their APPMOK
-    SELECT json_agg(json_build_object(
+    SELECT COALESCE(json_agg(json_build_object(
         'topic', 'registrator/' || mqtt_username || '/setup',
-        'appmok', (SELECT appmok::text FROM config WHERE id_config = config_id))
-        ) INTO registrators_array 
+        'APPMOK', (SELECT appmok FROM config WHERE id_config = config_id))
+        ), '[]'::json) INTO registrators_array 
     FROM device
     JOIN registrator USING(id_device)
     WHERE id_config = config_id AND
@@ -138,9 +147,9 @@ BEGIN
         
         json_build_object(
             'devices', json_build_object(
-                'readers', readers_array,
+                'readers', readers_array, 
                 'registrators', registrators_array
-            ),
+                ),
 
             'config', json_build_object(
                 'APPVOK', (SELECT appvok FROM config WHERE id_config = config_id),
@@ -158,6 +167,7 @@ BEGIN
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 \i functions/card_identifier.sql
@@ -219,7 +229,7 @@ $$ LANGUAGE plpgsql;
     managements system will have to wait until the card is
     registered before it assigns it to zones.
 
-    TODO; THIS CAN BE HANDLED BY POSTGRES using retry logic or by queue table and pg_cron
+    TODO; THIS CAN BE HANDLED BY POSTGRES using retry logic or by a queue table and pg_cron
 */
 CREATE OR REPLACE FUNCTION card_has_uid_for_zone_check()
 RETURNS TRIGGER AS $$

@@ -1,11 +1,24 @@
 # This should act as a middle man between the database and the MQTT broker
 
 
-from cbor import print_construct_cbor_entry
+from mqtt import MQTTHandler
+from database import run_database
 
 
 def main():
-    print_construct_cbor_entry()
+    mqtt = MQTTHandler(
+        broker="kharontest.w.sin.cvut.cz",
+        port=8883,
+        username="TestServer",
+        password="test",
+        client_id="SystemServer",
+        ca_cert_path="../mosquitto/certs/ca.crt",
+        server_cert_path="../mosquitto/certs/server.crt",
+        server_key_path="../mosquitto/certs/server.key"
+    )
+
+    conn = run_database(mqtt)
+    mqtt.conn = conn
 
 
 

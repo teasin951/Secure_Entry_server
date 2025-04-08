@@ -63,13 +63,14 @@ BEGIN
             -- create a json array with updates
             (
             SELECT json_build_object(
-                'UIDs', (
-                    SELECT json_agg(uid) FROM card 
+                'topic', 'whitelist/' || zone_record.id_zone || '/remove',
+                'UIDs', COALESCE(
+                    (
+                    SELECT json_agg(uid) FROM card
                     JOIN temp_old_rows nr USING(id_card)
                     WHERE nr.id_zone = zone_record.id_zone
-                ),
-
-                'topic', 'whitelist/' || zone_record.id_zone || '/remove'
+                    )
+                    , '[]'::json )
                 ) 
             )
         );

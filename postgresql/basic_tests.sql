@@ -1,9 +1,9 @@
 -- Create basic config and zone
 INSERT INTO card_identifier(manufacturer, mutual_auth, comm_enc, key_version)
-VALUES('Test', '\x0000', '\x00', 1);
+VALUES('Test', '\xCA02', '\x02', 1);
 
 INSERT INTO pacs_object(version_major, version_minor, site_code, reissue_code, customer_specific)
-VALUES(1, 1, '\x00', 0, '\x00');
+VALUES(1, 1, '\xFFAAFFAAFF', 34, '\x112233445566778899AABBCCDDEEFF0011223344');
 
 INSERT INTO config(appmok, appvok, ocpsk, name, id_card_identifier, id_pacs_object)
 VALUES('\x11111111111111111111111111111111', '\x22222222222222222222222222222222', '\x33333333333333333333333333333333', 'Test config', 1, 1);

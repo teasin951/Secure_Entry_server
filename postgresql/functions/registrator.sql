@@ -121,25 +121,21 @@ BEGIN
             )
         ) 
         FROM device d
-        JOIN registrator USING(id_device)
         WHERE d.id_device = NEW.id_device
         )
     );
 
+
     -- Remove persistent config
     INSERT INTO task_queue(task_type, payload)
     VALUES(
-        'config',
+        'remove_config',
         
         json_build_object(
-            'devices', json_build_object(
-                'readers', NULL,
-                'registrators', 'registrator/' || (SELECT mqtt_username FROM device WHERE id_device = OLD.id_device) || '/setup'
-            ),
-
-            'config', NULL
+            'topic', 'registrator/' || (SELECT mqtt_username FROM device WHERE id_device = OLD.id_device) || '/setup'
         )
     );
+
 
     RETURN NEW;
 END;
