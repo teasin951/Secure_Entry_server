@@ -3,40 +3,11 @@
 
 /*
     Handle insert into card
-    Expects to have transition table new_rows
 
-    - id_device filled -> issue command (only non bulk inserts)
+    Do nothing, card has to be personalized and inserted into tables first
 */
-CREATE OR REPLACE FUNCTION card_on_insert()
-RETURNS TRIGGER AS $$
-DECLARE
-    registrator_id INTEGER;
-    card_id INTEGER;
-    registrator_mqtt TEXT;
-BEGIN
-    /* Check that we are not personalizing multiple cards at once */
-    IF (SELECT count(id_device) FROM new_rows WHERE id_device IS NOT NULL) > 1 THEN
-        RAISE EXCEPTION 'Cards can only be personalized one at a time';
-    END IF;
+-- No function needed --
 
-
-    -- The id_device is now guaranteed to be a registrator and max 1 will be present
-    SELECT id_device, id_card 
-    INTO registrator_id, card_id 
-    FROM new_rows
-    WHERE id_device IS NOT NULL;
-
-    IF registrator_id IS NULL THEN
-        RETURN NEW;
-    END IF;
-
-    -- Issue personalize command
-    INSERT INTO command(command, id_registrator, id_card)
-    VALUES('personalize', registrator_id, card_id);
-
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
 
 
 /*

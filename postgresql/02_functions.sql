@@ -120,7 +120,7 @@ BEGIN
     -- Make array with reader topics and respective zones to update
     SELECT COALESCE(json_agg(json_build_object(
         'topic', 'reader/' || mqtt_username || '/setup',
-        'zone', (SELECT id_zone::text FROM reader WHERE id_device IN (
+        'Zone', (SELECT id_zone FROM reader WHERE id_device IN (
             SELECT id_device FROM device WHERE id_config = config_id
         )))
         ), '[]'::json) INTO readers_array 

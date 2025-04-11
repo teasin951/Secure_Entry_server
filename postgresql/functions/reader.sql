@@ -26,12 +26,12 @@ BEGIN
                         -- allow sending logs
                         json_build_object(
                             'acltype', 'publishClientSend',
-                            'topic', 'reader/logs',
+                            'topic', 'reader/' || d.mqtt_username || '/logs',
                             'allow', TRUE,
                             'priority', 5
                         ),
 
-                        -- allow reading setup
+                        -- allow reading reader specifig topics
                         json_build_object(
                             'acltype', 'subscribePattern',
                             'topic', 'reader/' || d.mqtt_username || '/#',
@@ -155,6 +155,6 @@ BEGIN
         )
     );
 
-    RETURN NEW;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

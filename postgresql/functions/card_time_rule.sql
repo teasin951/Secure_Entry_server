@@ -21,11 +21,6 @@ BEGIN
         JOIN card_zone USING(id_card, id_zone)      -- To get only cards that are in a zone
         WHERE id_zone = zone_record.id_zone;        -- Filter for current zone
 
-
-        IF card_ids IS NOT NULL THEN
-            PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
-        END IF;
-
         -- Update whitelist for THIS zone and its cards
         PERFORM update_whitelist_for_cards_in_zone(
             card_ids, 
@@ -99,6 +94,6 @@ BEGIN
 
     DROP TABLE IF EXISTS temp_new_rows;
 
-    RETURN NULL;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

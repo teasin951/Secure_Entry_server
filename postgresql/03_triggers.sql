@@ -83,12 +83,6 @@ EXECUTE FUNCTION card_zone_on_delete();
 /*
     Create triggers for each operation on card table
 */
-CREATE OR REPLACE TRIGGER card_operation_insert_trigger
-AFTER INSERT ON card
-REFERENCING NEW TABLE AS new_rows
-FOR EACH STATEMENT
-EXECUTE FUNCTION card_on_insert();
-
 CREATE OR REPLACE TRIGGER card_operation_update_trigger
 AFTER UPDATE ON card
 REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
@@ -137,7 +131,7 @@ FOR EACH ROW
 EXECUTE FUNCTION reader_on_update();
 
 CREATE OR REPLACE TRIGGER reader_operation_delete_trigger
-AFTER DELETE ON reader
+BEFORE DELETE ON reader
 FOR EACH ROW
 EXECUTE FUNCTION reader_on_delete();
 
@@ -156,7 +150,7 @@ FOR EACH ROW
 EXECUTE FUNCTION registrator_on_update();
 
 CREATE OR REPLACE TRIGGER registrator_operation_delete_trigger
-AFTER DELETE ON registrator
+BEFORE DELETE ON registrator
 FOR EACH ROW
 EXECUTE FUNCTION registrator_on_delete();
 
@@ -207,5 +201,5 @@ EXECUTE FUNCTION zone_on_delete();
     Create trigger for insert into command
 */
 CREATE OR REPLACE TRIGGER command_operation_insert_trigger
-BEFORE INSERT ON command
+AFTER INSERT ON command
 FOR EACH ROW EXECUTE FUNCTION command_on_insert();

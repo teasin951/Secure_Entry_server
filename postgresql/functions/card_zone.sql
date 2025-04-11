@@ -16,8 +16,6 @@ BEGIN
         SELECT DISTINCT id_zone FROM temp_new_rows
     LOOP
 
-        PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
-
         -- Get cards for THIS zone
         SELECT array_agg( DISTINCT tnr.id_card ) INTO card_ids 
         FROM temp_new_rows tnr 
@@ -52,8 +50,6 @@ BEGIN
     FOR zone_record IN 
         SELECT DISTINCT id_zone FROM temp_old_rows
     LOOP
-
-        PERFORM update_full_whitelist_for_zone(zone_record.id_zone);
 
         -- Insert the task with changes
         INSERT INTO task_queue(task_type, payload)
@@ -109,9 +105,6 @@ $$ LANGUAGE plpgsql;
 */
 CREATE OR REPLACE FUNCTION card_zone_on_update()
 RETURNS TRIGGER AS $$
-DECLARE
-    zone_record RECORD;
-    card_ids INTEGER[];
 BEGIN
 
     -- Create a temporary table to hold the transition data for the next function 
@@ -141,8 +134,6 @@ $$ LANGUAGE plpgsql;
 */
 CREATE OR REPLACE FUNCTION card_zone_on_delete()
 RETURNS TRIGGER AS $$
-DECLARE
-    zone_record RECORD;
 BEGIN
 
     -- Create a temporary table to hold the transition data for the next function 
@@ -153,6 +144,6 @@ BEGIN
 
     DROP TABLE IF EXISTS temp_old_rows;
 
-    RETURN NULL;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

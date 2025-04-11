@@ -26,7 +26,15 @@ BEGIN
                         -- allow sending logs
                         json_build_object(
                             'acltype', 'publishClientSend',
-                            'topic', 'registrator/logs',
+                            'topic', 'registrator/' || d.mqtt_username || '/logs',
+                            'allow', TRUE,
+                            'priority', 5
+                        ),
+
+                        -- allow sending UIDs
+                        json_build_object(
+                            'acltype', 'publishClientSend',
+                            'topic', 'registrator/' || d.mqtt_username || '/UID',
                             'allow', TRUE,
                             'priority', 5
                         ),
@@ -121,7 +129,7 @@ BEGIN
             )
         ) 
         FROM device d
-        WHERE d.id_device = NEW.id_device
+        WHERE d.id_device = OLD.id_device
         )
     );
 
@@ -137,6 +145,6 @@ BEGIN
     );
 
 
-    RETURN NEW;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

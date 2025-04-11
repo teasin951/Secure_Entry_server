@@ -29,6 +29,14 @@ BEGIN
                             'topic', 'whitelist/' || NEW.id_zone || '/#',
                             'allow', TRUE,
                             'priority', 5
+                        ),
+
+                        -- allow requesting whitelist
+                        json_build_object(
+                            'acltype', 'publishClientSend',
+                            'topic', 'whitelist/' || NEW.id_zone || '/request',
+                            'allow', TRUE,
+                            'priority', 5
                         )
                     )
                 ),
@@ -93,6 +101,6 @@ BEGIN
         ) 
     );
 
-    RETURN NULL;
+    RETURN OLD;
 END;
 $$ LANGUAGE plpgsql;

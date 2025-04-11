@@ -1,11 +1,17 @@
 import paho.mqtt.client as mqtt
+import logging
+import re
+
+
+logger = logging.getLogger(__name__)
 
 
 class MQTTHandler:
     def __init__(self, broker, port, username, password, client_id, ca_cert_path, server_cert_path, server_key_path, dbconn=None):
         self.conn = dbconn
         self.client = mqtt.Client(client_id=client_id)
-        self.card_registrators = {}  # Should be a dictionary with id_device to register id_card
+        self.card_personalize = {}  # Should be a dictionary with id_device to register (id_card, id_task)
+        self.card_depersonalizators = {} # dict of registrator that try to delete cards with id_task
 
         self.client.tls_set(
             ca_certs=ca_cert_path,
@@ -24,60 +30,143 @@ class MQTTHandler:
         self.client.connect(broker, port, 60)
 
 
+    def set_db_connection(self, dbconn):
+        self.conn = dbconn
+
+
+    def wait_registrator_depersonalize(self, mqtt_username, id_task):
+        self.card_depersonalizators[mqtt_username] = id_task
+
+
+    def wait_registrator_get_UID(self, mqtt_username, id_card, id_task):
+        self.card_personalize[mqtt_username] = (id_card, id_task)
+
+
     # Callback when the client receives a message
     def mqtt_on_message(self, client, userdata, message):
-        print(f"Received message on topic {message.topic}: {message.payload.decode()}")
-        match message.topic:
-            case "reader/logs":
-                # TODO INSERT logs
-                print("Reader logs: %s", message.payload.decode())
-                pass
-        
-            case "registrator/logs":
-                # TODO INSERT logs
-                print("Registrator logs: %s", message.payload.decode())
-                pass
+        if( mqtt.topic_matches_sub("reader/+/logs", str(message.topic)) or 
+            mqtt.topic_matches_sub("registrator/+/logs", str(message.topic)) ):
+            logger.debug(f"Received log on topic {message.topic}: {message.payload.decode()}")
+            self.handle_device_logs(message)
 
-            case client.topic_matches_subscription("registrator/+/UID", message.topic):
-                print("UID: %s", message.payload.decode())
-                self.receive_UID(message)
+        elif ( mqtt.topic_matches_sub("registrator/+/UID", str(message.topic)) ):
+            self.receive_UID(message)
 
-            case "$CONTROL/dynamic-security/v1/response":
-                print("DynSec response: ", message.payload)
+        elif ( mqtt.topic_matches_sub("whitelist/+/request", str(message.topic)) ):
+            self.retrieve_full_whitelist(message.topic.split('/')[1])
+
+
+    def handle_device_logs(self, message):
+        esp_logger = logging.getLogger( message.topic.rstrip('/logs') )
+        log_text = self.remove_ansi_escape_sequences(message.payload.decode())
+        match log_text[0]:
+            case 'I':
+                esp_logger.info(log_text[2:-1])
+
+            case 'W':
+                esp_logger.warning(log_text[2:-1])
+
+            case 'E':
+                esp_logger.error(log_text[2:-1])
+
+            case 'D':
+                esp_logger.debug(log_text[2:-1])
+
+
+    def remove_ansi_escape_sequences(self, text):
+        """Remove ANSI escape sequences (color codes) from a string."""
+        ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+        return ansi_escape.sub('', text)
 
 
     def receive_UID(self, message):
-        # If the card failed to be registered, TODO then what?
-        if( message.payload == 0xFFFFFFFFFFFFFF ):
-            return
+        logger.debug('UID: 0x%s', message.payload.hex())
 
         mqtt_registrator = message.topic.split('/')[1]
-        self.fill_UID_to_card( self.card_registrators.pop(mqtt_registrator), message.payload )
-            
 
-    def fill_UID_to_card(self, id_card, UID):
-        with self.conn.cursor() as cur:
+        try:
+            arguments = self.card_personalize.pop(mqtt_registrator)
+            self.fill_UID_to_card( 
+                arguments[0],
+                message.payload,
+                arguments[1]
+            )
+            return
+
+        except KeyError:
+            # Registrator should have not registered anybody
+            pass
+
+        try:
+            id_task = self.card_depersonalizators.pop(mqtt_registrator)
+            self.delete_card(
+                message.payload,
+                id_task
+            )
+            return
+
+        except KeyError:
+            # Registrator should have not depersonalized anybody
+            pass
+
+
+    def fill_UID_to_card(self, id_card, UID, id_task):
+        # If the operation has not succeeded, just finish the task
+        if( UID == bytes.fromhex('ffffffffffffff') ):
+            self.finish_task(id_task)
+            return
+
+        with (self.conn).cursor() as cur:
             cur.execute("""
                 UPDATE card SET uid = %s
-                WHERE id_card = %d
-            """, (UID,), id_card)
+                WHERE id_card = %s
+            """, (UID, id_card))
+
+        self.finish_task(id_task)
+
+
+    def delete_card(self, UID, id_task):
+        # If the operation has not succeeded, just finish the task
+        if( UID == bytes.fromhex('ffffffffffffff') ):
+            self.finish_task(id_task)
+            return
+
+        with (self.conn).cursor() as cur:
+            cur.execute("""
+                DELETE FROM card
+                WHERE uid = %s
+            """, (UID, ))
+
+        self.finish_task(id_task)
+
+
+    def finish_task(self, id_task):
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                DELETE FROM task_queue
+                WHERE id_task = %s;
+            """, (id_task,))
+
+
+    def retrieve_full_whitelist(self, id_zone):
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT update_full_whitelist_for_zone(%s);
+            """, (id_zone,))
 
 
     # Callback when the client connects to the broker
     def mqtt_on_connect(self, client, userdata, flags, rc):
         if rc == 0:
-            print("Connected to MQTT broker!")
+            logger.debug("Connected to MQTT broker!")
             client.subscribe([
-                ("reader/logs", 0),
-                ("registrator/logs", 0),
-                ("registrator/+/UID", 2)
+                ("reader/+/logs", 0),
+                ("registrator/+/logs", 0),
+                ("registrator/+/UID", 2),
+                ("whitelist/+/request", 2)
             ])
         else:
-            print(f"Connection failed with code {rc}")
-
-
-    def wait_registrator_get_UID(self, mqtt_username, id_card):
-        self.card_registrators[mqtt_username] = id_card
+            logger.ERROR(f"Connection failed with code {rc}")
 
     
     def publish_message(self, topic, payload, qos, retain):

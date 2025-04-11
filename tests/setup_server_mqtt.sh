@@ -14,16 +14,16 @@ read -resp "Admin password for the broker DynSec: " PASSW
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec createClient $SERVER  || exit 1
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec createRole $SERVER_ROLE  || exit 2
 
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribeLiteral "reader/logs" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "reader/+/setup" allow 5  || exit 4
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/+/full" allow 5  || exit 4
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/+/add" allow 5  || exit 4
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/+/remove" allow 5  || exit 4
 
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribeLiteral "registrator/logs" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "registrator/+/setup" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "registrator/+/command" allow 5  || exit 3
-mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribePattern "registrator/+/UID" allow 5  || exit 3
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribePattern "reader/#" allow 5  || exit 3
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "reader/#" allow 5  || exit 3
+
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribePattern "registrator/#" allow 5  || exit 3
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "registrator/#" allow 5  || exit 3
+
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE subscribePattern "whitelist/#" allow 5  || exit 4
+mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addRoleACL $SERVER_ROLE publishClientSend "whitelist/#" allow 5  || exit 4
+
 
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addClientRole $SERVER $SERVER_ROLE 5  || exit 5
 mosquitto_ctrl -o ./mosquitto_connect_options -P "$PASSW" dynsec addClientRole $SERVER "admin" 5  || exit 5

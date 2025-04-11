@@ -76,8 +76,9 @@ CREATE TABLE device (
 
 
 CREATE TABLE reader (
-    id_device INTEGER PRIMARY KEY REFERENCES device(id_device)
-        ON DELETE CASCADE,
+    id_device INTEGER NOT NULL UNIQUE REFERENCES device(id_device)
+        ON DELETE RESTRICT,          -- TODO only for now, the delete on device cascades after the row is gone
+                                     --    making it impossible for reader_on_delete to work properly
     id_zone INTEGER NOT NULL REFERENCES zone(id_zone)
         ON DELETE RESTRICT,                                  -- RESTRICT as readers must have a zone
 
@@ -87,14 +88,13 @@ CREATE TABLE reader (
 
 CREATE TABLE registrator (
     id_device INTEGER NOT NULL UNIQUE REFERENCES device(id_device)
-        ON DELETE CASCADE
+        ON DELETE RESTRICT           -- TODO only for now, the delete on device cascades after the row is gone
+                                     --    making it impossible for registrator_on_delete to work properly
 );
 
 
 CREATE TABLE card (
     id_card SERIAL PRIMARY KEY,
-    id_device INTEGER REFERENCES registrator(id_device)
-        ON DELETE SET NULL,                               -- SET NULL to keep the card in the system
 
     name VARCHAR(256) NOT NULL,
     uid BYTEA CHECK (octet_length(uid) = 4 OR octet_length(uid) = 7),
@@ -153,8 +153,7 @@ CREATE TABLE card_time_rule (
 
 /*
     To allow issueing commands to registrators
-    personalize   - send personalize command, useful for updating UID of an existing card entry
-                  - for new cards insert into card table instead
+    personalize   - send personalize command, update UID of an existing card entry
     depersonalize - send depersonalize command first, when successful, DELETE
     delete_app    - send delete last app command first, when successful, DELETE
 */
@@ -166,7 +165,7 @@ CREATE TABLE command(
     id_command SERIAL PRIMARY KEY,
     command enum_command_type NOT NULL,
     id_registrator INTEGER NOT NULL REFERENCES registrator(id_device),
-    id_card INTEGER REFERENCES card(id_card)   -- Only for personalize to fill UID to the correct card
+    id_card INTEGER NOT NULL REFERENCES card(id_card)
 );
 
 
@@ -178,6 +177,7 @@ CREATE TABLE task_queue (
     task_type TEXT NOT NULL,
     payload JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    pending BOOLEAN DEFAULT FALSE,
 
     -- To easily find when a registrator is busy, only used for registrator commands
     id_registrator INTEGER DEFAULT NULL REFERENCES registrator(id_device)   

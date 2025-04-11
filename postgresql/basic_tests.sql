@@ -101,14 +101,14 @@ DELETE FROM task_queue WHERE id_registrator = 2;
 
 -- Send depersonalize
 INSERT INTO command(command, id_registrator)
-VALUES ('depersonalize', 2);
+VALUES ('depersonalize', 2, 3);
 
 -- Clear task queue
 DELETE FROM task_queue WHERE id_registrator = 2;
 
 -- Send delete_last
 INSERT INTO command(command, id_registrator)
-VALUES ('delete_app', 2);
+VALUES ('delete_app', 2, 3);
 
 -- Try to issue command to a busy registrator
 DO $$
@@ -235,8 +235,8 @@ END $$;
 -- Create two timerules for zone 1
 INSERT INTO time_rule(id_zone, name)
 VALUES
-	(1, 'TestZone1'),
-	(1, 'TestZone2');
+	(1, 'TestRule1'),
+	(1, 'TestRule2');
 
 
 -- Add time_rule to a card

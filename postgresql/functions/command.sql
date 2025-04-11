@@ -26,12 +26,16 @@ BEGIN
 
         json_build_object(
             'topic', 'registrator/' || registrator_mqtt || '/command',
-            'id_card', NEW.id_card    -- when not personalize, filled with NULL
+            'username', registrator_mqtt,
+            'id_card', NEW.id_card
         ),
 
         NEW.id_registrator
     );
 
-    RETURN NULL;  -- We don't need to store the command
+    -- We don't need to store the command
+    DELETE FROM command WHERE id_command = NEW.id_command;
+
+    RETURN NULL;  
 END;
 $$ LANGUAGE plpgsql;
