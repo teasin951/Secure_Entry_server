@@ -23,6 +23,7 @@ CREATE TABLE card_identifier (
 	),
     mutual_auth BYTEA NOT NULL CHECK (octet_length(mutual_auth) = 2),
     comm_enc BYTEA NOT NULL CHECK (octet_length(comm_enc) = 1),
+    customer_id BYTEA NOT NULL CHECK (octet_length(customer_id) < 5),
     key_version SMALLINT NOT NULL CHECK (key_version < 256)
 );
 
@@ -32,6 +33,7 @@ CREATE TABLE pacs_object (
     version_major SMALLINT NOT NULL CHECK (version_major < 256),
     version_minor SMALLINT NOT NULL CHECK (version_minor < 256),
     site_code BYTEA NOT NULL CHECK (octet_length(site_code) < 6),
+    credential_id BYTEA NOT NULL CHECK (octet_length(credential_id) < 9),
     reissue_code SMALLINT NOT NULL CHECK (reissue_code < 256),
     customer_specific BYTEA NOT NULL CHECK (octet_length(customer_specific) < 21)
 );
@@ -40,7 +42,7 @@ CREATE TABLE pacs_object (
 CREATE TABLE config (
     id_config SERIAL PRIMARY KEY,
     
-    -- RESTRICT deletion to prevent accedentaly deleting keys from config table with CardID or PACSO
+    -- RESTRICT deletion to prevent accidentally deleting keys from config table with CardID or PACSO
     id_card_identifier INTEGER NOT NULL REFERENCES card_identifier(id_card_identifier)
         ON DELETE RESTRICT,
     id_pacs_object INTEGER NOT NULL REFERENCES pacs_object(id_pacs_object)
@@ -152,7 +154,7 @@ CREATE TABLE card_time_rule (
 
 
 /*
-    To allow issueing commands to registrators
+    To allow issuing commands to registrators
     personalize   - send personalize command, update UID of an existing card entry
     depersonalize - send depersonalize command first, when successful, DELETE
     delete_app    - send delete last app command first, when successful, DELETE

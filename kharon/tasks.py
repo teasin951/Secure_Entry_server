@@ -220,7 +220,7 @@ class TaskHandler:
         manufacturer[:len(card_id['manufacturer'])] = card_id['manufacturer'].encode('ascii')
         mutual_auth[:]  = bytes.fromhex(card_id['mutual_auth'].lstrip('\\x'))
         comm_enc[:]     = bytes.fromhex(card_id['comm_enc'].lstrip('\\x'))
-        # The system currently does not utilize customer_id
+        customer_id[:]  = bytes.fromhex(card_id['customer_id'].lstrip('\\x'))
         key_version[:]  = bytes([card_id['key_version']])
 
         return manufacturer + mutual_auth + comm_enc + customer_id + key_version
@@ -242,9 +242,11 @@ class TaskHandler:
         site_striped = pacso['site_code'].lstrip('\\x')
         site_code[ 5 - int(len(site_striped)/2) :] = bytes.fromhex(site_striped)
 
-        # credential id is currently not used
+        credential_striped = pacso['credential_id'].lstrip('\\x')
+        credential_id[ 8 - int(len(credential_striped)/2) :] = bytes.fromhex(credential_striped)
+
         reissue_code[:]  = bytes([pacso['reissue_code']])
-        # pin_code is currently not used
+        # pin_code is currently not used, leave zeroes
 
         # DB allows to not have precise length, thus we left pad the rest
         cust_striped = pacso['customer_specific'].lstrip('\\x')
