@@ -3,7 +3,7 @@ import cbor2
 
 
 def construct_time_rule(allow_from, allow_to, week_days):
-    """ From json whitelist parameters construct int64 for CBOR
+    """ From json whitelist parameters construct byte array for CBOR
 
     Args:
         allow_from (string): as received from DB
@@ -11,25 +11,19 @@ def construct_time_rule(allow_from, allow_to, week_days):
         week_days (string): as received from DB
     """
 
-    week_day_mask = int(week_days.lstrip('\\x'), 16)
+    time_rule = bytearray(5)
+
+    time_rule[0] = int(week_days.lstrip('\\x'), 16)
 
     split_from = allow_from.split(':')
     split_to   = allow_to.split(':')
 
-    from_hour   = int(split_from[0], 10)
-    from_minute = int(split_from[1], 10)
-    to_hour     = int(split_to[0],   10)
-    to_minute   = int(split_to[1],   10)
+    time_rule[1] = int(split_from[0], 10)
+    time_rule[2] = int(split_from[1], 10)
+    time_rule[3] = int(split_to[0],   10)
+    time_rule[4] = int(split_to[1],   10)
 
-    int_time_rule = (
-        (week_day_mask << 32) |
-        (from_hour << 24) |
-        (from_minute << 16) |
-        (to_hour << 8) |
-        to_minute
-    )
-
-    return int_time_rule
+    return time_rule
 
 
 def construct_time_rules(time_rules):
@@ -60,7 +54,7 @@ def construct_cbor_entry(UID, time_rules):
     """
 
     # The result is an array, thus we start with an array
-    data = [ int(UID.lstrip('\\x'), 16) ]
+    data = [ bytes(UID.lstrip('\\x'), 16) ]
 
     for rule in time_rules:
         data.append({"t": rule})
@@ -101,20 +95,3 @@ def construct_cbor_remove_array(UIDs_array):
         cbor_whitelist += construct_cbor_entry(entry, []) 
 
     return cbor_whitelist
-
-
-
-# TODO only for testing, move this
-def print_construct_cbor_entry():
-    UID = 0x11223344556677
-    TimeRules = [ 0x7C06222030, 0x6C08400910 ]
-    full_cbor = bytes(0) 
-
-    for i in range(0, 3):
-        full_cbor += construct_cbor_entry(UID, TimeRules, i) 
-
-        print(f"Encoded entry: {construct_cbor_entry(UID, TimeRules, i).hex()}")
-        print(f"Decoded entry: {cbor2.loads(construct_cbor_entry(UID, TimeRules, i))}")
-
-    print(f"Full encoded entry: {full_cbor.hex()}")
-    

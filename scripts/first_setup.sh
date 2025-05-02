@@ -39,5 +39,8 @@ source ../mosquitto/scripts/create_client_cert.sh || exit 1
 echo -e "\n ------------ Mosquitto DynSec setup ------------ "
 docker compose up -d mosquitto || exit 1
 docker exec -i mosquitto mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin-user || exit 1
+
+source ./setup_server_mqtt.sh || exit 2
+
 docker compose down
 docker compose up -d

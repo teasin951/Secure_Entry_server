@@ -1,6 +1,7 @@
 import paho.mqtt.client as mqtt
 import logging
 import re
+import cbor2
 
 
 logger = logging.getLogger(__name__)
@@ -80,15 +81,14 @@ class MQTTHandler:
 
 
     def receive_UID(self, message):
-        logger.debug('UID: 0x%s', message.payload.hex())
-
         mqtt_registrator = message.topic.split('/')[1]
+        conv_message = cbor2.loads(message)
 
         try:
             arguments = self.card_personalize.pop(mqtt_registrator)
             self.fill_UID_to_card( 
                 arguments[0],
-                message.payload,
+                conv_message,
                 arguments[1]
             )
             return
@@ -100,7 +100,7 @@ class MQTTHandler:
         try:
             id_task = self.card_depersonalizators.pop(mqtt_registrator)
             self.delete_card(
-                message.payload,
+                conv_message,
                 id_task
             )
             return
@@ -110,9 +110,11 @@ class MQTTHandler:
             pass
 
 
-    def fill_UID_to_card(self, id_card, UID, id_task):
+    def fill_UID_to_card(self, id_card, message, id_task):
         # If the operation has not succeeded, just finish the task
-        if( UID == bytes.fromhex('ffffffffffffff') ):
+        if( message['status'] == 'OP_FAIL' or \
+            message['UID'] == bytes.fromhex('ffffffffffffff')):
+
             self.finish_task(id_task)
             return
 
@@ -120,14 +122,16 @@ class MQTTHandler:
             cur.execute("""
                 UPDATE card SET uid = %s
                 WHERE id_card = %s
-            """, (UID, id_card))
+            """, (message['UID'], id_card))
 
         self.finish_task(id_task)
 
 
-    def delete_card(self, UID, id_task):
+    def delete_card(self, message, id_task):
         # If the operation has not succeeded, just finish the task
-        if( UID == bytes.fromhex('ffffffffffffff') ):
+        if( message['status'] == 'OP_FAIL' or \
+            message['UID'] == bytes.fromhex('ffffffffffffff')):
+
             self.finish_task(id_task)
             return
 
@@ -135,7 +139,7 @@ class MQTTHandler:
             cur.execute("""
                 DELETE FROM card
                 WHERE uid = %s
-            """, (UID, ))
+            """, (message['UID'], ))
 
         self.finish_task(id_task)
 
