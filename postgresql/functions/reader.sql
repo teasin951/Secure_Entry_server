@@ -96,6 +96,41 @@ BEGIN
     END IF;
 
 
+    INSERT INTO task_queue(task_type, payload)
+    VALUES(
+        'DynSec',
+        ( 
+        SELECT json_build_object(
+            'commands', json_build_array(
+
+                -- Create client with role and group
+                json_build_object(
+                    'command', 'modifyClient',
+                    'username', d.mqtt_username,
+                    'password', d.mqtt_password,
+
+                    'roles', json_build_array(
+                        json_build_object(
+                            'rolename', d.mqtt_username || '_role',
+                            'priority', 5
+                        )
+                    ),
+
+                    'groups', json_build_array(      -- group created by zone
+                        json_build_object(
+                            'groupname', NEW.id_zone::text,
+                            'priority', 5
+                        )
+                    )
+                )
+            )
+        ) 
+        FROM device d
+        JOIN reader USING(id_device)
+        WHERE d.id_device = NEW.id_device
+        )
+    );
+
     PERFORM push_new_config_to_devices(NEW.id_zone, NEW.id_device);
 
     RETURN NEW;

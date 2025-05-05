@@ -2,6 +2,7 @@ from complete_func import Prober
 import pytest
 import asyncio
 import cbor2
+from termcolor import colored
 
 #
 # These test the reader's reaction to stimuli
@@ -17,6 +18,7 @@ import cbor2
 t = Prober()
 
 
+# Clean some stuff from previous tests and add cards
 def test_cleanup():
     t.db.assert_query_success(
     """
@@ -35,6 +37,7 @@ def test_cleanup():
     )
 
 
+# Add reader to the system
 @pytest.mark.asyncio
 async def test_insert_reader():
     TAG = "Insert reader"
@@ -77,6 +80,7 @@ async def test_insert_reader():
     TAG)
 
 
+# Add registrator to the system
 @pytest.mark.asyncio
 async def test_insert_registrator():
     TAG = "Insert registrator"
@@ -107,6 +111,7 @@ async def test_insert_registrator():
     TAG)
 
 
+# Test updating config pushes it to devices if allowed
 @pytest.mark.asyncio
 async def test_update_config():
     TAG="Update config"
@@ -142,32 +147,64 @@ async def test_update_config():
     ],
     TAG)
 
-    await t.query_check_mqtt_cbor(
+    await t.query_check_mqtt_cbor_multi_sequence(
     r"""
         UPDATE card_identifier SET id_card_identifier = 1 WHERE id_card_identifier = 1;
     """,
-    "reader/TestReader/setup",
-    {
-        "APPVOK": int("22222222222222222222222222222222", 16), 
-        "OCPSK": int("33333333333333333333333333333333", 16), 
-        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
-        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
-        "Zone": 1
-    },
+    [
+        {
+            "topic": "reader/TestReader/setup",
+            "payload": [
+                {
+                    "APPVOK": int("22222222222222222222222222222222", 16), 
+                    "OCPSK": int("33333333333333333333333333333333", 16), 
+                    "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+                    "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+                    "Zone": 1
+                }]
+        },
+        {
+            "topic": "registrator/TestRegistrator/setup",
+            "payload": [
+                {
+                    "APPMOK": int("11111111111111111111111111111111", 16), 
+                    "APPVOK": int("22222222222222222222222222222222", 16), 
+                    "OCPSK": int("33333333333333333333333333333333", 16), 
+                    "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+                    "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+                }]
+        }
+    ],
     TAG)
 
-    await t.query_check_mqtt_cbor(
+    await t.query_check_mqtt_cbor_multi_sequence(
     r"""
         UPDATE pacs_object SET id_pacs_object = 1 WHERE id_pacs_object = 1;
     """,
-    "reader/TestReader/setup",
-    {
-        "APPVOK": int("22222222222222222222222222222222", 16), 
-        "OCPSK": int("33333333333333333333333333333333", 16), 
-        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
-        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
-        "Zone": 1
-    },
+    [
+        {
+            "topic": "reader/TestReader/setup",
+            "payload": [
+                {
+                    "APPVOK": int("22222222222222222222222222222222", 16), 
+                    "OCPSK": int("33333333333333333333333333333333", 16), 
+                    "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+                    "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+                    "Zone": 1
+                }]
+        },
+        {
+            "topic": "registrator/TestRegistrator/setup",
+            "payload": [
+                {
+                    "APPMOK": int("11111111111111111111111111111111", 16), 
+                    "APPVOK": int("22222222222222222222222222222222", 16), 
+                    "OCPSK": int("33333333333333333333333333333333", 16), 
+                    "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+                    "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+                }]
+        }
+    ],
     TAG)
 
     t.db.assert_query_fail(
@@ -189,9 +226,10 @@ async def test_update_config():
     TAG)
 
 
+# Try updating device mqtt credentials (should fail)
 @pytest.mark.asyncio
 async def test_update_device():
-    TAG="Bulk insert"
+    TAG="Change MQTT credentials"
     await t.mqtt.await_connection()
     
     t.db.assert_query_fail(
@@ -202,16 +240,22 @@ async def test_update_device():
     """,
     TAG)
 
-#     # TODO create new config and update the device after it has reader assigned
+    t.db.assert_query_fail(
+    """
+        UPDATE device
+        SET mqtt_password = 'Incorrect'
+        WHERE id_device = 1;
+    """,
+    TAG)
 
 
-
+# Try to personalize a card and check that the UID is returned to database
 @pytest.mark.asyncio
 async def test_personalize():
     TAG="Operations"
     await t.mqtt.await_connection()
 
-    print("=========== Personalize card A on the registrator ===========")
+    print(colored("=========== Personalize card A on the registrator ===========", "yellow"))
     await t.query_check_mqtt(
     r"""
         INSERT INTO command(command, id_registrator, id_card)
@@ -231,17 +275,18 @@ async def test_personalize():
     TAG)
 
 
+# Verify that the card has been personalized correctly and works when added to whitelist
 @pytest.mark.asyncio
 async def test_verify_personalization():
     TAG="Verify personalization"
     await t.mqtt.await_connection()
 
-    print("=========== Verify card A on the registrator ===========")
+    print(colored("=========== Verify card A on the registrator ===========", "yellow"))
     ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
     assert cbor2.loads(ret)['status'].rstrip('\x00') == 'AUTH_OK', "Failed to AUTH card that should be personalized"
 
 
-    print("=========== Try card A on the reader ===========")
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
     await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
 
 
@@ -251,6 +296,230 @@ async def test_verify_personalization():
     """, 
     TAG)
 
-    print("=========== Try card A on the reader ===========")
+    print(colored("=========== Try card A on the reader (again) ===========", "yellow"))
     await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
     
+
+# Push new config to registrator
+@pytest.mark.asyncio
+async def test_different_config():
+    TAG="Different config"
+    await t.mqtt.await_connection()
+
+    t.db.assert_query_success(
+    r"""
+        INSERT INTO config(id_config, appmok, appvok, ocpsk, name, id_card_identifier, id_pacs_object)
+        VALUES(2, '\x11111111111111111111111111111111', '\x88888888888888888888888888888888', 
+               '\x33333333333333333333333333333333', 'Test config 2', 1, 1);
+    """,
+    TAG)
+
+    await t.query_check_mqtt_cbor(
+    r"""
+        UPDATE device SET id_config = 2 WHERE name = 'TestRegistrator';
+    """,
+    "registrator/TestRegistrator/setup",
+    {
+        "APPMOK": int("11111111111111111111111111111111", 16), 
+        "APPVOK": int("88888888888888888888888888888888", 16), 
+        "OCPSK": int("33333333333333333333333333333333", 16), 
+        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+    },
+    TAG)
+
+    print(colored("=========== Personalize card B on the registrator ===========", "yellow"))
+    await t.query_check_mqtt(
+    r"""
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES('personalize', 2, 2);
+    """,
+    "registrator/TestRegistrator/command",
+    bytes.fromhex("1E"),
+    TAG)
+
+
+# Test that card personalized on a different config cannot be accepted by a reader with a different config
+@pytest.mark.asyncio
+async def test_new_config():
+    TAG="Test new config"
+    await t.mqtt.await_connection()
+
+    print(colored("=========== Verify card A on the registrator ===========", "yellow"))
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert cbor2.loads(ret)['status'].rstrip('\x00') == 'AUTH_FAIL', "Authenticated card that should not be personalized"
+
+    print(colored("=========== Verify card B on the registrator ===========", "yellow"))
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert cbor2.loads(ret)['status'].rstrip('\x00') == 'AUTH_OK', "Failed to AUTH card that should be personalized"
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    print(colored("=========== Try card B on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO card_zone VALUES(2, 1) ON CONFLICT DO NOTHING;
+    """, 
+    TAG)
+
+    print(colored("=========== Try card B on the reader (again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+    await t.query_check_mqtt_cbor(
+    r"""
+        UPDATE device SET id_config = 2 WHERE name = 'TestReader';
+    """,
+    "reader/TestReader/setup",
+    {
+        "APPVOK": int("88888888888888888888888888888888", 16), 
+        "OCPSK": int("33333333333333333333333333333333", 16), 
+        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+        "Zone": int(1)
+    },
+    TAG)
+    
+    print(colored("=========== Try card B on the reader (again, again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+
+# Depersonalize A 
+@pytest.mark.asyncio
+async def test_depersonalize():
+    TAG="Test depersonalization"
+    await t.mqtt.await_connection()
+
+    await t.query_check_mqtt_cbor(
+    r"""
+        UPDATE device SET id_config = 1 WHERE name = 'TestRegistrator';
+    """,
+    "registrator/TestRegistrator/setup",
+    {
+        "APPMOK": int("11111111111111111111111111111111", 16), 
+        "APPVOK": int("22222222222222222222222222222222", 16), 
+        "OCPSK": int("33333333333333333333333333333333", 16), 
+        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+    },
+    TAG)
+
+    print(colored("=========== Verify card A on the registrator ===========", "yellow"))
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert cbor2.loads(ret)['status'].rstrip('\x00') == 'AUTH_OK', "Failed to AUTH card that should be personalized"
+
+    print(colored("=========== Depersonalize card A on the registrator ===========", "yellow"))
+    await t.query_check_mqtt(
+    r"""
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES('depersonalize', 2, 1);
+    """,
+    "registrator/TestRegistrator/command",
+    bytes.fromhex("DE"),
+    TAG)
+
+    await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    await asyncio.sleep(0.5)
+
+    t.db.assert_query_response_null(
+    """
+        SELECT id_card FROM card WHERE id_card = 1;
+    """,
+    TAG)
+
+
+# Personalize A with new config
+@pytest.mark.asyncio
+async def test_again_personalize():
+    TAG="Test new personalization"
+    await t.mqtt.await_connection()
+
+    await t.query_check_mqtt_cbor(
+    r"""
+        UPDATE device SET id_config = 2 WHERE name = 'TestRegistrator';
+    """,
+    "registrator/TestRegistrator/setup",
+    {
+        "APPMOK": int("11111111111111111111111111111111", 16), 
+        "APPVOK": int("88888888888888888888888888888888", 16), 
+        "OCPSK": int("33333333333333333333333333333333", 16), 
+        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+    },
+    TAG)
+
+    print(colored("=========== Personalize card A on the registrator ===========", "yellow"))
+    await t.query_check_mqtt(
+    r"""
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES('personalize', 2, 3);
+    """,
+    "registrator/TestRegistrator/command",
+    bytes.fromhex("1E"),
+    TAG)
+
+
+# Test with different zones
+@pytest.mark.asyncio
+async def test_zones():
+    TAG="Test with zones"
+    await t.mqtt.await_connection()
+
+    print(colored("=========== Verify card B on the registrator ===========", "yellow"))
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert cbor2.loads(ret)['status'].rstrip('\x00') == 'AUTH_OK', "Failed to AUTH card that should be personalized"
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO card_zone VALUES(3, 1) ON CONFLICT DO NOTHING;
+    """, 
+    TAG)
+
+    print(colored("=========== Try card A on the reader (again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO card_zone VALUES(2, 2) ON CONFLICT DO NOTHING;
+    """, 
+    TAG)
+
+    await t.query_check_mqtt_cbor(
+    r"""
+        UPDATE reader SET id_zone = 2;
+    """,
+    "reader/TestReader/setup",
+    {
+        "APPVOK": int("88888888888888888888888888888888", 16), 
+        "OCPSK": int("33333333333333333333333333333333", 16), 
+        "CardID": bytes.fromhex("54657374000000000000000000000000CA02020000000001"),
+        "PACSO": bytes.fromhex("0101FFAAFFAAFF00000000001100222200000000112233445566778899AABBCCDDEEFF0011223344"), 
+        "Zone": int(2)
+    },
+    TAG)
+
+    print(colored("=========== Try card B on the reader  ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO card_zone VALUES(3, 2) ON CONFLICT DO NOTHING;
+    """, 
+    TAG)
+
+    print(colored("=========== Try card A on the reader (again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+
+# TODO time test

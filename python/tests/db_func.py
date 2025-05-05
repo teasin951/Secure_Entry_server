@@ -105,9 +105,31 @@ class AssertDB:
                 proc_res = convert_memoryviews_to_bytes(res)
 
                 print(f"Got: {proc_res}")
-                assert proc_res != [(None,)], f"-- {test_name} --\nQuery: {query}\nExpected something but got nothing"
+                assert proc_res != [], f"-- {test_name} --\nQuery: {query}\nExpected something but got nothing"
 
             except psycopg2.Error as e:
                 assert False, f"-- {test_name} --\nQuery: {query}\nExpected success but failed. Error: {e}"
+
+
+    def assert_query_response_null(self, query, test_name=""):
+        """ Test that a query response is empty
+
+        Args:
+            query (string): query to send
+            test_name (string): optional test name
+        """
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(query)
+                res = cur.fetchall()
+                proc_res = convert_memoryviews_to_bytes(res)
+
+                print(f"Got: {proc_res}")
+                assert proc_res == [], f"-- {test_name} --\nQuery: {query}\nExpected nothing but got: {proc_res}"
+
+            except psycopg2.Error as e:
+                assert False, f"-- {test_name} --\nQuery: {query}\nExpected success but failed. Error: {e}"
+
 
 
