@@ -475,5 +475,3 @@ async def test_mult_zone_card_update():
     ],
     TAG)
 
-
-

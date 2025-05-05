@@ -3,6 +3,7 @@ import pytest
 import asyncio
 import cbor2
 from termcolor import colored
+from datetime import datetime
 
 #
 # These test the reader's reaction to stimuli
@@ -109,6 +110,9 @@ async def test_insert_registrator():
         INSERT INTO reader(id_device, id_zone) VALUES(2, 1);
     """,
     TAG)
+
+    await t.mqtt.assert_receive_log("registrator/TestRegistrator/logs", "", TAG, 60)
+
 
 
 # Test updating config pushes it to devices if allowed
@@ -265,7 +269,8 @@ async def test_personalize():
     bytes.fromhex("1E"),
     TAG)
 
-    await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert ret is not None, "Did not receive UID after personalization"
     await asyncio.sleep(0.5)
 
     t.db.assert_query_response_not_null(
@@ -522,4 +527,130 @@ async def test_zones():
     await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
 
 
-# TODO time test
+# Test with time constraints
+@pytest.mark.asyncio
+async def test_time_constraints():
+    TAG="Test time constraints"
+    await t.mqtt.await_connection()
+
+    now = datetime.now()
+    hour = int(now.strftime("%H"))
+    next_hour = hour + 1
+    if(next_hour > 23): 
+        next_hour = 0
+    minute = int(now.strftime("%M"))
+    prev_hour = hour - 1
+    if(prev_hour < 0):
+        prev_hour = 23
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO time_rule(id_time_rule, id_zone, name) VALUES(1, 2, 'TestZone')
+        ON CONFLICT DO NOTHING;
+    """, 
+    TAG)
+
+    t.db.assert_query_success(
+    """
+        INSERT INTO card_time_rule VALUES(3, 1, 2);
+    """,
+    TAG)
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    t.db.assert_query_success(
+    f"""
+        INSERT INTO time_constraint VALUES(1, 1, 2, '{hour}:{minute}', '{next_hour}:{minute}', '\x7f')
+        ON CONFLICT DO NOTHING;
+    """
+    )
+
+    print(colored("=========== Try card A on the reader (again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    t.db.assert_query_success(
+    f"""
+        INSERT INTO time_constraint VALUES(2, 1, 2, '{prev_hour}:{minute}', '{prev_hour}:{minute}', '\x7f')
+        ON CONFLICT DO NOTHING;
+    """
+    )
+
+    print(colored("=========== Try card A on the reader (again, again) ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+    t.db.assert_query_success(
+    """
+        DELETE FROM time_constraint WHERE id_time_constraint = 1;
+    """
+    )
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "rejected", TAG)
+
+    print(colored("=========== Try card B on the reader  ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+    
+    t.db.assert_query_success(
+    """
+        DELETE FROM time_rule;
+    """
+    )
+
+    print(colored("=========== Try card A on the reader ===========", "yellow"))
+    await t.mqtt.assert_receive_log("reader/TestReader/logs", "accepted", TAG)
+
+
+# Clean some stuff from previous tests and add cards
+@pytest.mark.asyncio
+async def test_deletes():
+    TAG="Test deletes"
+    await t.mqtt.await_connection()
+
+    print(colored("=========== Depersonalize card A on the registrator ===========", "yellow"))
+    await t.query_check_mqtt(
+    r"""
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES('delete_app', 2, 3);
+    """,
+    "registrator/TestRegistrator/command",
+    bytes.fromhex("FF"),
+    TAG)
+
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert ret is not None, "Did not receive UID after personalization"
+
+    print(colored("=========== Depersonalize card B on the registrator ===========", "yellow"))
+    await t.query_check_mqtt(
+    r"""
+        INSERT INTO command(command, id_registrator, id_card)
+        VALUES('depersonalize', 2, 2);
+    """,
+    "registrator/TestRegistrator/command",
+    bytes.fromhex("DE"),
+    TAG)
+
+    ret = await t.mqtt.await_topic("registrator/TestRegistrator/UID", 10)
+    assert ret is not None, "Did not receive UID after personalization"
+
+
+    t.db.assert_query_success(
+    """
+        DELETE FROM card;
+        DELETE FROM time_rule;
+        DELETE FROM reader;
+        DELETE FROM registrator;
+    """
+    )
+
+    print(colored("=========== Readers should now disconnect ===========", "yellow"))
+
+    t.db.assert_query_success(
+    """
+        DELETE FROM zone;
+        DELETE FROM device;
+        DELETE FROM config;
+        DELETE FROM pacs_object;
+        DELETE FROM card_identifier;
+    """
+    )
