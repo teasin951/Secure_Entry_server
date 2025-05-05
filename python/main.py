@@ -5,6 +5,10 @@ from mqtt import MQTTHandler
 from database import DatabaseHandler
 import logging
 from logging.handlers import RotatingFileHandler
+import os
+
+
+logger = logging.getLogger(__name__)
 
 
 def setup_logger():
@@ -25,17 +29,30 @@ def setup_logger():
 
 
 def main():
-    mqtt = MQTTHandler(
-        broker = "kharontest.w.sin.cvut.cz",
-        port = 8883,
-        username = "TestServer",
-        password = "test",
-        client_id = "SystemServer",
-        ca_cert_path = "../mosquitto/certs/ca.crt",
-        server_cert_path = "../mosquitto/certs/server.crt",
-        server_key_path = "../mosquitto/certs/server.key"
-    )
-    DatabaseHandler(mqtt)
+    try:
+        mqtt = MQTTHandler(
+            hostname = os.environ["MOSQUITTO_HOSTNAME"],
+            port = int(os.environ["MOSQUITTO_PORT"]),
+            username = os.environ["SERVER_MQTT_USERNAME"],
+            password = os.environ["SERVER_MQTT_PASSWORD"],
+            client_id = "SystemServer",
+            ca_cert_path = os.environ["MOSQUITTO_CA_FILE_PATH"],
+            server_cert_path = os.environ["SERVER_CERT_FILE_PATH"],
+            server_key_path = os.environ["SERVER_KEY_FILE_PATH"]
+        )
+        DatabaseHandler(
+            hostname = os.environ["DATABASE_HOSTNAME"],
+            port = int(os.environ["DATABASE_PORT"]),
+            dbname = os.environ["DATABASE_NAME"],
+            username = os.environ["DATABASE_USERNAME"],
+            password = os.environ["DATABASE_PASSWORD"],
+            mqtthandler = mqtt
+        )
+
+    except KeyError as e:
+        logger.error(f"Environmental variable missing: {e}")
+        logger.error("Aborting")
+        exit
 
 
 

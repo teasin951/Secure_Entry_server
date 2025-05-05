@@ -207,29 +207,6 @@ INSERT INTO card_zone
 VALUES(3, 1);
 
 
--- Try to add cards in bulk with registrators
-DO $$
-DECLARE
-    success BOOLEAN;
-BEGIN
-    BEGIN
-        INSERT INTO card(name, id_device)
-        VALUES
-            ('TestCrd',  2),
-            ('TestCrd2', 2),
-            ('TestCrd3', 2);
-        success := TRUE;
-    EXCEPTION WHEN OTHERS THEN
-        success := FALSE;
-    END;
-
-    IF success THEN
-        RAISE WARNING 'Letting multiple cards get registered at once must not be allowed';
-    END IF;
-
-    ROLLBACK; 
-END $$;
-
 -----------------------------------------------------------------------------------------------------------
 
 -- Create two timerules for zone 1

@@ -3,9 +3,9 @@
 # You have to fill this to use this script!
 HOST=kharontest.w.sin.cvut.cz
 
-SERVER=TestServer
-CLIENT=TestClient
-PASSW="test"
+SERVER=Server
+CLIENT=TestRegistrator
+PASSW="admin"
 ZONE=1
 
 

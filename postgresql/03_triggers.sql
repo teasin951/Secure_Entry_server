@@ -83,11 +83,31 @@ EXECUTE FUNCTION card_zone_on_delete();
 /*
     Create triggers for each operation on card table
 */
-CREATE OR REPLACE TRIGGER card_operation_update_trigger
+CREATE OR REPLACE TRIGGER card_operation_before_update_trigger
+BEFORE UPDATE ON card
+FOR EACH ROW
+EXECUTE FUNCTION card_on_update_before();
+
+CREATE OR REPLACE TRIGGER card_operation_after_update_trigger
 AFTER UPDATE ON card
-REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
+FOR EACH ROW
+EXECUTE FUNCTION card_on_update_after();
+
+
+CREATE OR REPLACE TRIGGER card_operation_before_statement_delete_trigger
+BEFORE DELETE ON card
 FOR EACH STATEMENT
-EXECUTE FUNCTION card_on_update();
+EXECUTE FUNCTION card_on_delete_before_statement();
+
+CREATE OR REPLACE TRIGGER card_operation_before_delete_trigger
+BEFORE DELETE ON card
+FOR EACH ROW 
+EXECUTE FUNCTION card_on_delete_before();
+
+CREATE OR REPLACE TRIGGER card_operation_after_delete_trigger
+AFTER DELETE ON card
+FOR EACH STATEMENT
+EXECUTE FUNCTION card_on_delete_after();
 
 
 /*
@@ -190,6 +210,11 @@ CREATE OR REPLACE TRIGGER zone_operation_insert_trigger
 AFTER INSERT ON zone
 FOR EACH ROW
 EXECUTE FUNCTION zone_on_insert();
+
+CREATE OR REPLACE TRIGGER zone_operation_update_trigger
+AFTER UPDATE ON zone
+FOR EACH ROW
+EXECUTE FUNCTION zone_on_update();
 
 CREATE OR REPLACE TRIGGER zone_operation_delete_trigger
 AFTER DELETE ON zone

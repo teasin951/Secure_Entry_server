@@ -84,7 +84,7 @@ CREATE TABLE reader (
     id_zone INTEGER NOT NULL REFERENCES zone(id_zone)
         ON DELETE RESTRICT,                                  -- RESTRICT as readers must have a zone
 
-    max_time_rules SMALLINT NOT NULL     -- TODO currently not checked, just here as an indicator
+    max_time_rules SMALLINT     -- TODO currently not checked, just here as an indicator
 );
 
 
@@ -99,7 +99,7 @@ CREATE TABLE card (
     id_card SERIAL PRIMARY KEY,
 
     name VARCHAR(256) NOT NULL,
-    uid BYTEA CHECK (octet_length(uid) = 4 OR octet_length(uid) = 7),
+    uid BYTEA UNIQUE CHECK (octet_length(uid) = 4 OR octet_length(uid) = 7),
     external_user_id INTEGER,   -- for associating this card with a user from an external database
     pin_code BYTEA CHECK (octet_length(pin_code) = 4),
     notes TEXT

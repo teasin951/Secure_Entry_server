@@ -54,7 +54,7 @@ def construct_cbor_entry(UID, time_rules):
     """
 
     # The result is an array, thus we start with an array
-    data = [ bytes(UID.lstrip('\\x'), 16) ]
+    data = [ bytes.fromhex(UID.lstrip('\\x')) ]
 
     for rule in time_rules:
         data.append({"t": rule})

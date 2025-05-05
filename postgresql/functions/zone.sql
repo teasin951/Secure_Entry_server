@@ -66,8 +66,19 @@ $$ LANGUAGE plpgsql;
     Handle update on zone
 
     - Do nothing, only name and notes can be changed if in use
+    - Only check we are not changing id_zone when unused
 */
--- No function needed --
+CREATE OR REPLACE FUNCTION zone_on_update()
+RETURNS TRIGGER AS $$
+BEGIN
+
+    IF not NEW.id_zone = OLD.id_zone THEN
+        RAISE EXCEPTION 'Updating id_zone is forbidden';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 
 /*

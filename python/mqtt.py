@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class MQTTHandler:
-    def __init__(self, broker, port, username, password, client_id, ca_cert_path, server_cert_path, server_key_path, dbconn=None):
+    def __init__(self, hostname, port, username, password, client_id, ca_cert_path, server_cert_path, server_key_path, dbconn=None):
         self.conn = dbconn
         self.client = mqtt.Client(client_id=client_id)
         self.card_personalize = {}  # Should be a dictionary with id_device to register (id_card, id_task)
@@ -22,13 +22,14 @@ class MQTTHandler:
         )
 
         self.client.username_pw_set(username, password)
+        self.client.max_inflight_messages_set(1)  # TODO change after adapting per-device restrictions
 
         # Assign callback functions
         self.client.on_connect = self.mqtt_on_connect
         self.client.on_message = self.mqtt_on_message
 
         self.client.loop_start()
-        self.client.connect(broker, port, 60)
+        self.client.connect(hostname, port, 60)
 
 
     def set_db_connection(self, dbconn):
@@ -82,8 +83,9 @@ class MQTTHandler:
 
     def receive_UID(self, message):
         mqtt_registrator = message.topic.split('/')[1]
-        conv_message = cbor2.loads(message)
+        conv_message = cbor2.loads(message.payload)
 
+        logger.debug(f"Received on UID: {conv_message}")
         try:
             arguments = self.card_personalize.pop(mqtt_registrator)
             self.fill_UID_to_card( 
@@ -112,7 +114,7 @@ class MQTTHandler:
 
     def fill_UID_to_card(self, id_card, message, id_task):
         # If the operation has not succeeded, just finish the task
-        if( message['status'] == 'OP_FAIL' or \
+        if( message['status'].rstrip('\x00') == 'OP_FAIL' or \
             message['UID'] == bytes.fromhex('ffffffffffffff')):
 
             self.finish_task(id_task)
@@ -129,7 +131,7 @@ class MQTTHandler:
 
     def delete_card(self, message, id_task):
         # If the operation has not succeeded, just finish the task
-        if( message['status'] == 'OP_FAIL' or \
+        if( message['status'].rstrip('\x00') == 'OP_FAIL' or \
             message['UID'] == bytes.fromhex('ffffffffffffff')):
 
             self.finish_task(id_task)

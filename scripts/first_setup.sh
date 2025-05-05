@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-#	This script serves as a quick and easy setup of a new KharonACS server
+#	This script serves as a quick and easy setup of a new server
 #
 
 # echo "
@@ -22,7 +22,7 @@ echo "
 ----------------------------------------------------------------------
 NOTE: It is important to use different certificate subject parameters for your CA, server and clients.
 
-If the certificates appear identical, even though generated separately,the broker/client will not be able to distinguish between them and you will experience difficult to diagnose errors.
+If the certificates appear identical, even though generated separately, the broker/client will not be able to distinguish between them and you will experience difficult to diagnose errors.
 ----------------------------------------------------------------------
 "
 
@@ -40,7 +40,14 @@ echo -e "\n ------------ Mosquitto DynSec setup ------------ "
 docker compose up -d mosquitto || exit 1
 docker exec -i mosquitto mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin-user || exit 1
 
+source ./set_env_variables.sh || exit 2
 source ./setup_server_mqtt.sh || exit 2
 
 docker compose down
-docker compose up -d
+docker compose up -d mosquitto postgres
+
+
+echo -e "\n ------------ Database setup ------------ "
+source ./setup_database.sh || exit 3
+
+# TODO up python container now

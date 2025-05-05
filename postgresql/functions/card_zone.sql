@@ -37,39 +37,40 @@ $$ LANGUAGE plpgsql;
     Push whitelist remove modifications on change in card_zone
 
     Expects to have temp_old_rows table that contains the changed rows
-
-    TODO if the whitelist is empty, python should clear the persistent session
 */
 CREATE OR REPLACE FUNCTION remove_from_whitelist_on_card_zone_change()
 RETURNS VOID AS $$
 DECLARE
     zone_record RECORD;
-    card_ids INTEGER[];
+    remove_json JSON;
 BEGIN
 
     FOR zone_record IN 
         SELECT DISTINCT id_zone FROM temp_old_rows
     LOOP
+        SELECT COALESCE(json_agg(uid), '[]'::json) INTO remove_json
+        FROM card
+        JOIN temp_old_rows nr USING(id_card)
+        WHERE nr.id_zone = zone_record.id_zone;
 
-        -- Insert the task with changes
-        INSERT INTO task_queue(task_type, payload)
-        VALUES(
-            'whitelist_remove',
+        -- No point inserting into task_queue if there is nothing
+        IF json_array_length(remove_json) > 0 THEN
 
-            -- create a json array with updates
-            (
-            SELECT json_build_object(
-                'topic', 'whitelist/' || zone_record.id_zone || '/remove',
-                'UIDs', COALESCE(
-                    (
-                    SELECT json_agg(uid) FROM card
-                    JOIN temp_old_rows nr USING(id_card)
-                    WHERE nr.id_zone = zone_record.id_zone
-                    )
-                    , '[]'::json )
-                ) 
-            )
-        );
+            -- Insert the task with changes
+            INSERT INTO task_queue(task_type, payload)
+            VALUES(
+                'whitelist_remove',
+
+                -- create a json array with updates
+                (
+                SELECT json_build_object(
+                    'topic', 'whitelist/' || zone_record.id_zone || '/remove',
+                    'UIDs', remove_json
+                    ) 
+                )
+            );
+
+        END IF;
     END LOOP;
 
 END;

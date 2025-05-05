@@ -20,7 +20,7 @@ class TaskHandler:
 
     def carry_out_task(self, task):
 
-        # logger.debug('Type: %s, Payload: %s', str(task['task_type']), str(task['payload']))
+        logger.debug('Type: %s, Payload: %s', str(task['task_type']), str(task['payload']))
 
         match task['task_type']:
             case "personalize":
@@ -110,7 +110,7 @@ class TaskHandler:
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
             bytearray(construct_cbor_whitelist(dict_payload['whitelist'])),
-            qos=2, retain=True
+            qos=2, retain=False
         )
         return True
 
@@ -220,7 +220,11 @@ class TaskHandler:
         manufacturer[:len(card_id['manufacturer'])] = card_id['manufacturer'].encode('ascii')
         mutual_auth[:]  = bytes.fromhex(card_id['mutual_auth'].lstrip('\\x'))
         comm_enc[:]     = bytes.fromhex(card_id['comm_enc'].lstrip('\\x'))
-        customer_id[:]  = bytes.fromhex(card_id['customer_id'].lstrip('\\x'))
+
+        # DB allows not to have precise length
+        customer_striped = card_id['customer_id'].lstrip('\\x')
+        customer_id[ 4 - int(len(customer_striped)/2) :] = bytes.fromhex(customer_striped)
+
         key_version[:]  = bytes([card_id['key_version']])
 
         return manufacturer + mutual_auth + comm_enc + customer_id + key_version

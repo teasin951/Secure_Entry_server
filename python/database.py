@@ -16,17 +16,18 @@ class TaskFailedException(Exception):
 
 
 class DatabaseHandler:
-    def __init__ (self, mqtthandler:MQTTHandler):
+    def __init__ (self, hostname, port, dbname, username, password, mqtthandler:MQTTHandler):
         """ Connect to the specified database and listen for notifications
         """
 
         self.timeout = 10
         self.mqtthandler = mqtthandler
         self.conn = psycopg2.connect(
-            host="localhost", 
-            dbname="test", 
-            user="admin", 
-            password="admin"
+            host=hostname, 
+            port=port,
+            dbname=dbname, 
+            user=username, 
+            password=password
         )
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
@@ -53,7 +54,7 @@ class DatabaseHandler:
 
                 except psycopg2.Error as e:
                     logger.error(f"Database error: {e}")
-                    logger.error(f"Reatempting in {self.timeout} s")
+                    logger.error(f"Reattempting in {self.timeout} s")
                     await asyncio.sleep(self.timeout)
 
                 except TaskFailedException as e:
