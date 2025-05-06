@@ -6,8 +6,12 @@ The tests expect you to have:
 
 Two readers ready to be connected the Mosquitto MQTT broker (DynSec installed). One as a basic reader with the MQTT username _TestReader_ and a registrator with the MQTT username _TestRegistrator_. 
 
-You will also need to have two MIFARE DESFire ev1 cards that are wiped.
+You will also need to have two wiped MIFARE DESFire ev1 cards.
 
-Next, the database is expected to be setup, but without any data present.
+The database is expected to be deployed but without any data present.
 
-You will also need to perform actions as instructed by the test, so be ready.
+The python script should be up and running.
+
+The reader tests are interactive. You will need to perform actions as instructed by the tests, so be ready.
+
+If some tests fail, it can lead to other tests failing. In that case use `pytest -k <specify test>` to rerun only specific tests.

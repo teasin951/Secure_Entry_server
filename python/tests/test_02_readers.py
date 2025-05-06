@@ -1,4 +1,4 @@
-from complete_func import Prober
+from prober import Prober
 import pytest
 import asyncio
 import cbor2
@@ -13,7 +13,7 @@ from datetime import datetime
 # A basic reader and a registrator connected to the Wi-Fi and ready to be connected to the MQTT
 # is expected with the credentials TestReader, test and TestRegistrator, test
 #
-# This test is interactive and you will need at least 2 desfire ev1 cards. Follow the instructions given.
+# This test is interactive and you will need at least 2 DESFire ev1 cards. Follow the instructions given.
 #
 
 t = Prober()

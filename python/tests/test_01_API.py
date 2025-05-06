@@ -1,4 +1,4 @@
-from complete_func import Prober
+from prober import Prober
 import pytest
 
 
