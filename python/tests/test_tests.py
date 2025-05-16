@@ -6,6 +6,7 @@ import cbor2
 
 t = Prober()
 
+# Simple tests of the DB testing suite
 def test_db():
     """Simple test of my DB tests
     """
@@ -72,6 +73,7 @@ async def simple_command_send():
         qos=2, retain=0)
 
 
+# Simple test of the MQTT testing suite
 @pytest.mark.asyncio
 async def test_mqtt():
     """Test that the simple test works

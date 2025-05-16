@@ -6,11 +6,14 @@ CREATE OR REPLACE FUNCTION update_full_whitelist_for_zone( zone_id INTEGER )
 RETURNS INTEGER AS $$
 BEGIN
 
+    -- Insert the task with changes
     INSERT INTO task_queue(task_type, payload)
     VALUES(
         'whitelist_full',
 
         (
+
+        -- create a json array with the full whitelist
         SELECT json_build_object(
             'topic', 'whitelist/' || zone_id || '/full',
 

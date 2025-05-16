@@ -13,6 +13,7 @@ import pytest
 t = Prober()
 
 
+# Basic DB inserts test
 @pytest.mark.asyncio
 async def test_db_insert():
     TAG = "Basic DB insert"
@@ -53,6 +54,7 @@ async def test_db_insert():
     TAG)
 
 
+# Test inserting card and adding it into a zone
 @pytest.mark.asyncio
 async def test_insert_card():
     TAG = "Insert card"
@@ -92,6 +94,7 @@ async def test_insert_card():
     TAG)
 
 
+# Test changes of card and constrains update whitelist
 @pytest.mark.asyncio
 async def test_update_card():
     TAG="Update card"
@@ -135,6 +138,7 @@ async def test_update_card():
     TAG)
 
 
+# Test some bulk inserts
 @pytest.mark.asyncio
 async def test_insert_bulk():
     TAG="Bulk insert"
@@ -180,6 +184,7 @@ async def test_insert_bulk():
     TAG)
 
 
+# Test extended updates on time constraints
 @pytest.mark.asyncio
 async def test_update_constraints():
     TAG="Updates"
@@ -296,6 +301,7 @@ async def test_update_constraints():
     TAG)
 
 
+# More tests of time rules
 @pytest.mark.asyncio
 async def test_change_card_zone():
     TAG="Card_zone changes"
@@ -401,6 +407,7 @@ async def test_change_card_zone():
     TAG)
 
 
+# Simple zone change tests
 @pytest.mark.asyncio
 async def test_update_zone():
     TAG="Zone changes"
@@ -420,6 +427,7 @@ async def test_update_zone():
     )
 
 
+# Test updating cards that are in multiple zones
 @pytest.mark.asyncio
 async def test_mult_zone_card_update():
     TAG="Card in multiple zones update"

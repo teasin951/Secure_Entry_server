@@ -7,7 +7,7 @@ def convert_memoryviews_to_bytes(data):
     """
 
     if isinstance(data, memoryview):
-        return data.tobytes()  # Convert memoryview → bytes
+        return data.tobytes()
     elif isinstance(data, tuple):
         return tuple(convert_memoryviews_to_bytes(item) for item in data)
     elif isinstance(data, list):

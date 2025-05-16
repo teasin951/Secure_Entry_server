@@ -5,20 +5,23 @@ import json
 import logging
 
 
-# TODO document functions
-
 
 logger = logging.getLogger(__name__)
 
 
 class TaskHandler:
     def __init__(self, dbconn, mqtthandler:MQTTHandler):
+        """ Set necessary object
+        """
+
         self.conn = dbconn
         self.mqtthandler = mqtthandler
         # self.task_timeout = 10   # How long to wait before we delete pending task
 
 
     def carry_out_task(self, task):
+        """ Based on the task type, do required stuff
+        """
 
         logger.debug('Type: %s, Payload: %s', str(task['task_type']), str(task['payload']))
 
@@ -72,7 +75,9 @@ class TaskHandler:
 
 
     def handle_config_update(self, dict_payload):
-        # -- Reformat the payload to what devices expect --
+        """ Reformat the payload into the format devices expect
+        """
+
         # Hex numbers have to be parsed into bytes
         config = dict_payload['config']
 
@@ -107,6 +112,9 @@ class TaskHandler:
 
 
     def task_whitelist_full(self, dict_payload):
+        """ Publish whitelist on the full topic
+        """
+
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
             bytearray(construct_cbor_whitelist(dict_payload['whitelist'])),
@@ -116,6 +124,9 @@ class TaskHandler:
 
 
     def task_whitelist_add(self, dict_payload):
+        """ Publish whitelist on the add topic
+        """
+
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
             bytearray(construct_cbor_whitelist(dict_payload['whitelist'])),
@@ -125,6 +136,9 @@ class TaskHandler:
 
 
     def task_whitelist_remove(self, dict_payload):
+        """ Publish whitelist on the remove topic
+        """
+
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
             bytearray(construct_cbor_remove_array(dict_payload['UIDs'])),
@@ -132,8 +146,11 @@ class TaskHandler:
         )
         return True
 
-
+    
     def task_personalize(self, dict_payload, id_task):
+        """ Send command for personalization
+        """
+
         self.mqtthandler.wait_registrator_get_UID(
             dict_payload['username'], dict_payload['id_card'], id_task)
         self.mqtthandler.publish_message(
@@ -145,6 +162,9 @@ class TaskHandler:
 
 
     def task_depersonalize(self, dict_payload, id_task):
+        """ Send command for depersonalization
+        """
+
         self.mqtthandler.wait_registrator_depersonalize(dict_payload['username'], id_task)
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
@@ -155,6 +175,8 @@ class TaskHandler:
 
 
     def task_delete_app(self, dict_payload, id_task):
+        """ Send command for deleting the last created app
+        """
         self.mqtthandler.wait_registrator_depersonalize(dict_payload['username'], id_task)
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
@@ -165,6 +187,9 @@ class TaskHandler:
 
 
     def task_dynsec(self, dict_payload):
+        """ Update DynSec ACLs
+        """
+
         self.mqtthandler.publish_message(
             "$CONTROL/dynamic-security/v1", 
             json.dumps(dict_payload),
@@ -174,12 +199,17 @@ class TaskHandler:
 
 
     def task_config(self, dict_payload):
+        """ Update configuration
+        """
+
         self.handle_config_update(dict_payload)
         return True
 
 
     def task_remove_config(self, dict_payload):
-        # Send empty message with retain set to true to delete retained message
+        """ Send empty message with retain set to true to delete retained message
+        """
+
         self.mqtthandler.publish_message(
             dict_payload['topic'], 
             payload=None,
@@ -189,6 +219,9 @@ class TaskHandler:
         
 
     def finish_task(self, id_task):
+        """ Delete task from task_queue
+        """
+
         with self.conn.cursor() as cur:
             cur.execute("""
                 DELETE FROM task_queue
@@ -199,6 +232,9 @@ class TaskHandler:
 
 
     def set_pending_task(self, id_task):
+        """ Make a task pending
+        """
+
         # TODO probably should have a timeout
         with self.conn.cursor() as cur:
             cur.execute("""
@@ -211,6 +247,9 @@ class TaskHandler:
 
 
     def serialize_CardID(self, card_id):
+        """ Reformat received CardID to CBOR
+        """
+
         manufacturer = bytearray(16)
         mutual_auth = bytearray(2)
         comm_enc = bytearray(1)
@@ -231,6 +270,9 @@ class TaskHandler:
 
 
     def serialize_PACSO(self, pacso):
+        """ Reformat received PACSO to CBOR
+        """
+
         version_major = bytearray(1)
         version_minor = bytearray(1)
         site_code     = bytearray(5)

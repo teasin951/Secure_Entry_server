@@ -50,4 +50,4 @@ docker compose up -d mosquitto postgres
 echo -e "\n ------------ Database setup ------------ "
 source ./setup_database.sh || exit 3
 
-# TODO up python container now
+# TODO up python container here

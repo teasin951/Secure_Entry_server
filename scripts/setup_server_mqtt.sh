@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#
+# This scripts set basic DynSec ACLs for the server to operate
+#
 
 echo -e "--- Might require sudo if it can't find files or you have to generate them ---"
 

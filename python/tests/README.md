@@ -1,6 +1,6 @@
 The functionality of the server and readers is tested.
 
-Run with by using `pytest` in the python directory.
+Run by using `pytest` in the python directory.
 
 The tests expect you to have:
 

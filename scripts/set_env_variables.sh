@@ -6,9 +6,11 @@
 # NEEDS TO BE SOURCED TO HAVE AFFECT ON THE PARENT SHELL!
 
 
+# Get script folder
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 
+# Get variables from user
 read -re -p "Mosquitto hostname: " MOSQUITTO_HOSTNAME 
 read -re -i "8883" -p "Mosquitto port: " MOSQUITTO_PORT 
 read -re -i "admin" -p "DynSec admin username: " MOSQUITTO_DYNSEC_USERNAME 
@@ -27,6 +29,7 @@ read -re -i "admin" -p "Database username: " DATABASE_USERNAME
 read -re -i "admin" -p "Database password: " DATABASE_PASSWORD
 
 
+# Set environmental variables
 export MOSQUITTO_HOSTNAME
 export MOSQUITTO_PORT
 export MOSQUITTO_DYNSEC_USERNAME

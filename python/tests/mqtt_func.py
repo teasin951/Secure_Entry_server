@@ -27,7 +27,7 @@ class MQTTHandler:
             tls_version=mqtt.ssl.PROTOCOL_TLS_CLIENT
         )
 
-        self.client.max_inflight_messages_set(1)  # TODO change after adapting per-device restrictions
+        self.client.max_inflight_messages_set(1)  # Change after adapting per-device restrictions
         self.client.username_pw_set(username, password)
 
         # Assign callback functions
@@ -204,7 +204,7 @@ class MQTTHandler:
 
 
     def match_entry_to_cbor_sequence(self, entry, cbor):
-        """Assert if a entry is in cbor sequence
+        """Assert if an entry is in cbor sequence
 
         Args:
             entry (array): Whitelist entry to check

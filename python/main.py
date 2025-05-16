@@ -12,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 def setup_logger():
+    """Setup the logging library
+    """
+
     rotating_handler = RotatingFileHandler(
         filename    = "./logs/system.log",
         maxBytes    = 10 * 1024 * 1024,  # 10 MB
@@ -29,6 +32,9 @@ def setup_logger():
 
 
 def main():
+    """ Start server according to environmental variables
+    """
+
     try:
         mqtt = MQTTHandler(
             hostname = os.environ["MOSQUITTO_HOSTNAME"],

@@ -8,7 +8,7 @@ from datetime import datetime
 #
 # These test the reader's reaction to stimuli
 #
-# The tests are expected to be launched after the API tests at least the db_insert test is required
+# The tests expect to be executed after the API tests, at least the db_insert test is required
 #
 # A basic reader and a registrator connected to the Wi-Fi and ready to be connected to the MQTT
 # is expected with the credentials TestReader, test and TestRegistrator, test
