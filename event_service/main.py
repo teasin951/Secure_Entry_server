@@ -41,11 +41,12 @@ def main():
             port = int(os.environ["MOSQUITTO_PORT"]),
             username = os.environ["SERVER_MQTT_USERNAME"],
             password = os.environ["SERVER_MQTT_PASSWORD"],
-            client_id = "SystemServer",
-            ca_cert_path = os.environ["MOSQUITTO_CA_FILE_PATH"],
-            server_cert_path = os.environ["SERVER_CERT_FILE_PATH"],
-            server_key_path = os.environ["SERVER_KEY_FILE_PATH"]
+            client_id = "EventService",
+            ca_cert_path = "./certs/ca.crt",
+            server_cert_path = "./certs/server.crt",
+            server_key_path = "./certs/server.key"
         )
+
         DatabaseHandler(
             hostname = os.environ["DATABASE_HOSTNAME"],
             port = int(os.environ["DATABASE_PORT"]),
@@ -56,8 +57,8 @@ def main():
         )
 
     except KeyError as e:
-        logger.error(f"Environmental variable missing: {e}")
-        logger.error("Aborting")
+        logger.error(f"Environmental variable, CA file, or server cert files missing: {e}")
+        logger.error("Aborting...")
         exit
 
 

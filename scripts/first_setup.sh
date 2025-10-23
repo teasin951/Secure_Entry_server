@@ -27,13 +27,13 @@ If the certificates appear identical, even though generated separately, the brok
 "
 
 echo -e "\n ---------- CA ---------- "
-source ../mosquitto/scripts/create_CA.sh || exit 1
+source ../certs/scripts/create_CA.sh || exit 1
 
 echo -e "\n -------- Server -------- "
-source ../mosquitto/scripts/create_server_cert.sh || exit 1
+source ../certs/scripts/create_server_cert.sh || exit 1
 
 echo -e "\n -------- Client -------- "
-source ../mosquitto/scripts/create_client_cert.sh || exit 1
+source ../certs/scripts/create_client_cert.sh || exit 1
 
 
 echo -e "\n ------------ Mosquitto DynSec setup ------------ "

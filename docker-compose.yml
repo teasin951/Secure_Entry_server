@@ -2,16 +2,18 @@ services:
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
+    restart: unless-stopped
     ports:
       - "8883:8883"
     volumes:
-      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config:ro
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/logs:/mosquitto/logs
-      - ./mosquitto/certs:/mosquitto/certs
-    restart: unless-stopped
+      - ./certs/mosquitto:/mosquitto/certs:ro
+    networks:
+      - eleados_network
     
-  db:
+  postgres:
     image: postgres
     container_name: postgres
     restart: always
@@ -20,22 +22,32 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
+      POSTGRES_PASSWORD: admin   # CHANGE!!!
     volumes:
-      - local_pgdata:/var/lib/postgresql/data
-      
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    restart: always
-    ports:
-      - "8888:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@domain.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - pgadmin-data:/var/lib/pgadmin
+      - ./postgresql/data:/var/lib/postgresql
+      - ./postgresql/sql:/etc/eleados
+    networks:
+      - eleados_network
 
-volumes:
-  local_pgdata:
-  pgadmin-data:
+  eleados_event_service:
+    container_name: eleados_event_service
+    restart: unless-stopped
+    build:
+      context: ./event_service
+      dockerfile: ./Dockerfile
+
+    environment:
+      MOSQUITTO_HOSTNAME: mosquitto
+      MOSQUITTO_PORT: 8883
+      MOSQUITTO_DYNSEC_USERNAME: admin
+      MOSQUITTO_DYNSEC_PASSWORD: admin    # CHANGE!!!
+
+    volumes:
+      - ./event_service/logs:/var/log/eleados
+      - ./certs/event_service:/srv/eleados/certs:ro
+    networks:
+      - eleados_network
+
+networks: 
+  eleados_network:
+    driver: bridge

@@ -24,7 +24,6 @@ class MQTTHandler:
         )
 
         self.client.username_pw_set(username, password)
-        self.client.max_inflight_messages_set(1)  # TODO change after adapting per-device restrictions
 
         # Assign callback functions
         self.client.on_connect = self.mqtt_on_connect
