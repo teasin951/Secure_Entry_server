@@ -6,7 +6,7 @@ from tasks import TaskHandler
 import logging
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Event service (" + __name__ + ")")
 
 
 class TaskFailedException(Exception):

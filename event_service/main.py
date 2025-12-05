@@ -8,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 import os
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Event service (" + __name__ + ")")
 
 
 def setup_logger():
@@ -16,7 +16,7 @@ def setup_logger():
     """
 
     rotating_handler = RotatingFileHandler(
-        filename    = "./logs/system.log",
+        filename    = "/var/log/eleados/system.log",
         maxBytes    = 10 * 1024 * 1024,  # 10 MB
         backupCount = 5,              # Keep 5 rotated logs
     )
@@ -40,11 +40,11 @@ def main():
             hostname = os.environ["MOSQUITTO_HOSTNAME"],
             port = int(os.environ["MOSQUITTO_PORT"]),
             username = os.environ["SERVICE_MQTT_USERNAME"],
-            password = os.environ["SERVICe_MQTT_PASSWORD"],
+            password = os.environ["SERVICE_MQTT_PASSWORD"],
             client_id = "EventService",
             ca_cert_path = "./certs/ca.crt",
-            server_cert_path = "./certs/server.crt",
-            server_key_path = "./certs/server.key"
+            server_cert_path = "./certs/service.crt",
+            server_key_path = "./certs/service.key"
         )
 
         DatabaseHandler(

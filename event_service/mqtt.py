@@ -4,7 +4,7 @@ import re
 import cbor2
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Event service (" + __name__ + ")")
 
 
 class MQTTHandler:
@@ -27,6 +27,7 @@ class MQTTHandler:
 
         # Assign callback functions
         self.client.on_connect = self.mqtt_on_connect
+        self.client.on_connect_fail = self.mqtt_on_connect_fail
         self.client.on_message = self.mqtt_on_message
 
         self.client.loop_start()
@@ -66,7 +67,10 @@ class MQTTHandler:
                 ("whitelist/+/request", 2)
             ])
         else:
-            logger.ERROR(f"Connection failed with code {rc}")
+            logger.error(f"Connection failed with code {rc}")
+
+    def mqtt_on_connect_fail(self, client, userdata):
+        logger.error("Failed to establish connection to the MQTT broker. Make sure the hostname is resolvable and the broker is running.")
 
 
     def mqtt_on_message(self, client, userdata, message):
