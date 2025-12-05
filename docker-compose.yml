@@ -6,10 +6,10 @@ services:
     ports:
       - "8883:8883"
     volumes:
-      - ./mosquitto/config:/mosquitto/config:ro
+      - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/logs:/mosquitto/logs
-      - ./certs/mosquitto:/mosquitto/certs:ro
+      - ./certs/mosquitto:/mosquitto/certs
     networks:
       - eleados_network
     
@@ -22,25 +22,34 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin   # CHANGE!!!
+      POSTGRES_PASSWORD: admin   # CHANGE THIS!!!
     volumes:
       - ./postgresql/data:/var/lib/postgresql
       - ./postgresql/sql:/etc/eleados
     networks:
       - eleados_network
 
-  eleados_event_service:
-    container_name: eleados_event_service
+  event_service:
+    container_name: event_service
     restart: unless-stopped
     build:
       context: ./event_service
       dockerfile: ./Dockerfile
 
     environment:
-      MOSQUITTO_HOSTNAME: mosquitto
+      MOSQUITTO_HOSTNAME: mosquitto_hostname   #CHANGE THIS!!! (must match mosquito's cert)
       MOSQUITTO_PORT: 8883
       MOSQUITTO_DYNSEC_USERNAME: admin
-      MOSQUITTO_DYNSEC_PASSWORD: admin    # CHANGE!!!
+      MOSQUITTO_DYNSEC_PASSWORD: admin    # CHANGE THIS!!!
+
+      SERVICE_MQTT_USERNAME: EventService
+      SERVICE_MQTT_PASSWORD: admin        # CHANGE THIS!!!
+
+      DATABASE_HOSTNAME: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: Eleados
+      DATABASE_USERNAME: admin
+      DATABASE_PASSWORD: admin   #CHANG THIS!!! (should match with postgres password)
 
     volumes:
       - ./event_service/logs:/var/log/eleados

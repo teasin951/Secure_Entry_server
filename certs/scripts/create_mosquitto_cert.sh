@@ -37,9 +37,9 @@ Without it, and the corresponding DNS record, you will not be able to connect wi
 # Create server key and cert
 read -r -e -i "3650" -p "Mosquitto certificate validity in days: " CDAYS
 if ! openssl genrsa -out "$DIR"/broker.key 2048 ||                    # Generate server key
-   ! openssl req -out "$DIR"/broker.csr -key "$DIR"brokero.key -new ||       # Generate cert singing request
-   ! openssl x509 -req -in "$DIR"/broker.csr -CA "$CADIR"/ca.crt -CAkey "$CA"/ca.key -CAcreateserial -out "$DIR"brokero.crt -days "$CDAYS" ||       # Send request to CA
-   ! openssl verify -CAfile "$CA"/ca.crt -verbose "$DIR"/broker.crt ; then       # Verify cert
+   ! openssl req -out "$DIR"/broker.csr -key "$DIR"broker.key -new ||       # Generate cert singing request
+   ! openssl x509 -req -in "$DIR"/broker.csr -CA "$CADIR"/ca.crt -CAkey "$CADIR"/ca.key -CAcreateserial -out "$DIR"broker.crt -days "$CDAYS" ||       # Send request to CA
+   ! openssl verify -CAfile "$CADIR"/ca.crt -verbose "$DIR"/broker.crt ; then       # Verify cert
 
 	rm "$DIR"/broker.*  # Sometimes it creates files even though it fails
 	exit 1

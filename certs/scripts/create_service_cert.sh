@@ -38,8 +38,8 @@ Without it, and the corresponding DNS record, you will not be able to connect wi
 read -r -e -i "3650" -p "Event service certificate validity in days: " CDAYS
 if ! openssl genrsa -out "$DIR"/service.key 2048 ||                    # Generate server key
    ! openssl req -out "$DIR"/service.csr -key "$DIR"/service.key -new ||       # Generate cert singing request
-   ! openssl x509 -req -in "$DIR"/service.csr -CA "$CADIR"/ca.crt -CAkey "$CA"/ca.key -CAcreateserial -out "$DIR"/service.crt -days "$CDAYS" ||       # Send request to CA
-   ! openssl verify -CAfile "$CA"/ca.crt -verbose "$DIR"/service.crt ; then       # Verify cert
+   ! openssl x509 -req -in "$DIR"/service.csr -CA "$CADIR"/ca.crt -CAkey "$CADIR"/ca.key -CAcreateserial -out "$DIR"/service.crt -days "$CDAYS" ||       # Send request to CA
+   ! openssl verify -CAfile "$CADIR"/ca.crt -verbose "$DIR"/service.crt ; then       # Verify cert
 
 	rm "$DIR"/service.*  # Sometimes it creates files even though it fails
 	exit 1

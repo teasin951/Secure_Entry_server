@@ -16,6 +16,24 @@
 # Make sure everything is called correctly
 cd "$(dirname "$0")" || exit 2
 
+echo "
+
+Welcome to the Eleados server initial setup. 
+
+This script should be used for first setup only, if you need to modify the setup of an already initialized server, please use the individual scripts or commands provided.
+
+
+
+"
+
+
+# Make sure we are ready to create containers
+read -r -e -p "Have you already prepared the 'docker_compose.yml' file? y/N: " PREP 
+if [ "$PREP" != "y" ] ; then
+	echo "Then go ahead and set all environmental variables that need changing first."
+	exit 0
+fi
+
 
 echo -e "\n ------------ TLS Setup ------------ "
 echo "
@@ -29,25 +47,32 @@ If the certificates appear identical, even though generated separately, the brok
 echo -e "\n ---------- CA ---------- "
 source ../certs/scripts/create_CA.sh || exit 1
 
-echo -e "\n -------- Server -------- "
-source ../certs/scripts/create_server_cert.sh || exit 1
+echo -e "\n -------- Mosquitto -------- "
+source ../certs/scripts/create_mosquitto_cert.sh || exit 1
 
-echo -e "\n -------- Client -------- "
-source ../certs/scripts/create_client_cert.sh || exit 1
+echo -e "\n -------- Event service -------- "
+source ../certs/scripts/create_service_cert.sh || exit 1
 
 
 echo -e "\n ------------ Mosquitto DynSec setup ------------ "
 docker compose up -d mosquitto || exit 1
 docker exec -i mosquitto mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin-user || exit 1
-
-source ./set_env_variables.sh || exit 2
-source ./setup_server_mqtt.sh || exit 2
-
-docker compose down
-docker compose up -d mosquitto postgres
+docker compose restart mosquitto
+source setup_dynsec.sh  # TODO make it a script in event service as it has all the env variables
 
 
 echo -e "\n ------------ Database setup ------------ "
-source ./setup_database.sh || exit 3
+docker compose up -d postgres
+docker exec -it -w /etc/eleados postgres psql -U admin -f /etc/eleados/deploy_all.sql
 
+
+echo -e "\n ------------ Event service setup ------------ "
 # TODO up python container here
+
+
+
+echo "
+
+---
+The server should now be up and running. You should now create certificates for your devices using the script certs/scripts/create_device_cert.sh
+"

@@ -39,8 +39,8 @@ def main():
         mqtt = MQTTHandler(
             hostname = os.environ["MOSQUITTO_HOSTNAME"],
             port = int(os.environ["MOSQUITTO_PORT"]),
-            username = os.environ["SERVER_MQTT_USERNAME"],
-            password = os.environ["SERVER_MQTT_PASSWORD"],
+            username = os.environ["SERVICE_MQTT_USERNAME"],
+            password = os.environ["SERVICe_MQTT_PASSWORD"],
             client_id = "EventService",
             ca_cert_path = "./certs/ca.crt",
             server_cert_path = "./certs/server.crt",
