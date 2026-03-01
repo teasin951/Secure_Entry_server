@@ -320,20 +320,37 @@ class MQTTHandler:
         return ansi_escape.sub('', text)
 
 
+    # async def assert_receive_log(self, topic, log, test_name="", timeout=10):
+    #     """Wait for a message and assert if it is the log we were waiting for
+
+    #     Args:
+    #         topic (string): Topic to monitor
+    #         log (string): Log message to wait for
+    #         timeout (int, optional): The time to wait in seconds. Defaults to 10.
+    #     """
+
+    #     while True:
+    #         ret = await self.await_topic(topic, timeout)
+    #         assert ret is not None, f"-- {test_name} --\nNo message received on topic {topic}, timed out."
+
+    #         log_string = self.remove_ansi_escape_sequences(ret.decode())
+    #         if( re.search(log, log_string) ):
+    #             break
+
     async def assert_receive_log(self, topic, log, test_name="", timeout=10):
-        """Wait for a message and assert if it is the log we were waiting for
-
-        Args:
-            topic (string): Topic to monitor
-            log (string): Log message to wait for
-            timeout (int, optional): The time to wait in seconds. Defaults to 10.
-        """
-
-        while True:
-            ret = await self.await_topic(topic, timeout)
-            assert ret is not None, f"-- {test_name} --\nNo message received on topic {topic}, timed out."
+        # Set one deadline for the whole function
+        deadline = asyncio.get_running_loop().time() + timeout
+        
+        while asyncio.get_running_loop().time() < deadline:
+            # Calculate remaining time so we don't exceed the total timeout
+            remaining = deadline - asyncio.get_running_loop().time()
+            ret = await self.await_topic(topic, max(0, remaining))
+            
+            if ret is None:
+                break # We timed out inside await_topic
 
             log_string = self.remove_ansi_escape_sequences(ret.decode())
-            if( re.search(log, log_string) ):
-                break
+            if re.search(log, log_string):
+                return # Success!
 
+        assert False, f"-- {test_name} --\nTimed out waiting for log '{log}' on {topic}"

@@ -5,4 +5,4 @@
 #
 
 # Execute deploy_all.sql file
-docker exec -it postgres psql -U admin -f /etc/eleados/deploy_all.sql
+docker exec -w /etc/eleados/ -it postgres psql -U admin -d Eleados -f /etc/eleados/deploy_all.sql

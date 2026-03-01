@@ -56,9 +56,9 @@ source ../certs/scripts/create_service_cert.sh || exit 1
 
 echo -e "\n ------------ Mosquitto DynSec setup ------------ "
 docker compose up -d mosquitto || exit 1
-docker exec -i mosquitto mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin-user || exit 1
+docker exec -i mosquitto mosquitto_ctrl dynsec init /mosquitto/config/dynamic-security.json admin || exit 1
 docker compose restart mosquitto
-source setup_dynsec.sh  # TODO make it a script in event service as it has all the env variables
+source setup_dynsec.sh
 
 
 echo -e "\n ------------ Database setup ------------ "
@@ -67,8 +67,7 @@ docker exec -it -w /etc/eleados postgres psql -U admin -f /etc/eleados/deploy_al
 
 
 echo -e "\n ------------ Event service setup ------------ "
-# TODO up python container here
-
+docker compose up -d
 
 
 echo "

@@ -23,6 +23,7 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin   # CHANGE THIS!!!
+      POSTGRES_DB: Eleados
     volumes:
       - ./postgresql/data:/var/lib/postgresql
       - ./postgresql/sql:/etc/eleados
@@ -37,10 +38,10 @@ services:
       dockerfile: ./Dockerfile
 
     environment:
-      MOSQUITTO_HOSTNAME: mosquitto_hostname   #CHANGE THIS!!! (must match mosquito's cert)
+      MOSQUITTO_HOSTNAME: kharontest.w.sin.cvut.cz   #CHANGE THIS!!! (must match mosquito's cert)
       MOSQUITTO_PORT: 8883
       MOSQUITTO_DYNSEC_USERNAME: admin
-      MOSQUITTO_DYNSEC_PASSWORD: admin    # CHANGE THIS!!!
+      MOSQUITTO_DYNSEC_PASSWORD: admin    # CHANGE THIS!!! (will be required when seting up dynsec as well)
 
       SERVICE_MQTT_USERNAME: EventService
       SERVICE_MQTT_PASSWORD: admin        # CHANGE THIS!!!
@@ -49,7 +50,7 @@ services:
       DATABASE_PORT: 5432
       DATABASE_NAME: Eleados
       DATABASE_USERNAME: admin
-      DATABASE_PASSWORD: admin   #CHANG THIS!!! (should match with postgres password)
+      DATABASE_PASSWORD: admin   #CHANG THIS!!! (must match with postgres password)
 
     volumes:
       - ./event_service/logs:/var/log/eleados

@@ -8,17 +8,17 @@ class Prober():
         self.mqtt = MQTTHandler(
             hostname="kharontest.w.sin.cvut.cz",
             port=8883,
-            username="Server",
+            username="EventService",
             password="admin",
             client_id="TestServer",
-            ca_cert_path = "../mosquitto/certs/ca.crt",
-            server_cert_path = "../mosquitto/certs/server.crt",
-            server_key_path = "../mosquitto/certs/server.key"
+            ca_cert_path = "../../certs/event_service/ca.crt",
+            server_cert_path = "../../certs/event_service/service.crt",
+            server_key_path = "../../certs/event_service/service.key"
         )
 
         self.db = AssertDB(
             host="localhost",
-            dbname="test",
+            dbname="Eleados",
             username="admin",
             password="admin"
         )
